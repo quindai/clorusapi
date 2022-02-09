@@ -1,6 +1,8 @@
 Django==4.0.2
 djangorestframework
-markdown
 django-filter
+markdown
+mysql-connector-python
+psycopg2-binary
+python-decouple
 pytest-django
-tox
