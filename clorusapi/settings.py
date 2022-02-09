@@ -95,6 +95,9 @@ if DEBUG:
 DATABASES = {
     config('MYSQL_DB1_NAME'): {
         'ENGINE': 'mysql.connector.django',
+        'OPTIONS': {
+            'sql_mode': 'traditional',
+        },
         'NAME': config('MYSQL_DB1_NAME'),
         'USER': config('MYSQL_DB_USER'),
         'PASSWORD': config('MYSQL_DB_PASS'),
@@ -103,6 +106,9 @@ DATABASES = {
     },
     config('MYSQL_DB2_NAME'): {
         'ENGINE': 'mysql.connector.django',
+        'OPTIONS': {
+            'sql_mode': 'traditional',
+        },
         'NAME': config('MYSQL_DB2_NAME'),
         'USER': config('MYSQL_DB_USER'),
         'PASSWORD': config('MYSQL_DB_PASS'),
@@ -111,6 +117,9 @@ DATABASES = {
     },   
     config('MYSQL_DB3_NAME'): {
         'ENGINE': 'mysql.connector.django',
+        'OPTIONS': {
+            'sql_mode': 'traditional',
+        },
         'NAME': config('MYSQL_DB3_NAME'),
         'USER': config('MYSQL_DB_USER'),
         'PASSWORD': config('MYSQL_DB_PASS'),
@@ -119,6 +128,9 @@ DATABASES = {
     },
     config('MYSQL_DB4_NAME'): {
         'ENGINE': 'mysql.connector.django',
+        'OPTIONS': {
+            'sql_mode': 'traditional',
+        },
         'NAME': config('MYSQL_DB4_NAME'),
         'USER': config('MYSQL_DB_USER'),
         'PASSWORD': config('MYSQL_DB_PASS'),
