@@ -16,8 +16,10 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
+# from accounts.urls import router as auth_router
 
 router = DefaultRouter()
+# router.registry.extend(auth_router.registry)
 #router.register(r'route', MyViewSet, basename='View Namce')
 
 urlpatterns = [
