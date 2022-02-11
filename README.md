@@ -25,6 +25,12 @@ Inicialize a imagem Docker do banco de dados Postgres. Se não quiser usar o doc
 DB_NAME=dbname DB_USER=dbuser DB_PASS=dbpass docker-compose up
 ```
 
+Ou
+
+```
+env $(cat .env) docker-compose up
+```
+
 Agora inicialize o ambiente com o tox. Esse comando irá instalar as dependências do projeto, fazer os migrations e realizar os testes se existirem.
 
 ```python
