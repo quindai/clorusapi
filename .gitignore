@@ -3,6 +3,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Database files
+postgres-data/
+
 # C extensions
 *.so
 
