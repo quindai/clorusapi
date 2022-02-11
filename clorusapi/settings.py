@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
 ]
 
+# AUTHENTICATION_BACKENDS = ['accounts.models.EmailBackend']
 INSTALLED_APPS+=CUSTOM_APPS
 
 MIDDLEWARE = [
