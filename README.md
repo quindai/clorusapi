@@ -19,7 +19,7 @@ pip install tox
 
 Verifique se o arquivo `.env` está na raiz do projeto, use como base o arquivo `.env.example`, defina o valor de todas as variavéis.
 
-Inicialize a imagem Docker do banco de dados Postgres. Se não quiser usar o docker com Postgres, basta definir DEBUG=True no arquivo `.env` para usar o sqlite. Substitua os valores da variavéis `DB_*`.
+Inicialize a imagem Docker do banco de dados Postgres. Se não quiser usar o docker com Postgres, basta definir DEBUG=True no arquivo `.env` para usar o sqlite. Substitua os valores das variavéis `DB_*`.
 
 ```
 DB_NAME=dbname DB_USER=dbuser DB_PASS=dbpass docker-compose up
