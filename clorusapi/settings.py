@@ -134,17 +134,17 @@ DATABASES = {
         'HOST': config('MYSQL_DB_HOST'),
         'PORT': config('MYSQL_DB_PORT'),
     },   
-    config('MYSQL_DB3_NAME'): {
-        'ENGINE': 'mysql.connector.django',
-        'OPTIONS': {
-            'sql_mode': 'traditional',
-        },
-        'NAME': config('MYSQL_DB3_NAME'),
-        'USER': config('MYSQL_DB_USER'),
-        'PASSWORD': config('MYSQL_DB_PASS'),
-        'HOST': config('MYSQL_DB_HOST'),
-        'PORT': config('MYSQL_DB_PORT'),
-    },
+    # config('MYSQL_DB3_NAME'): {
+    #     'ENGINE': 'mysql.connector.django',
+    #     'OPTIONS': {
+    #         'sql_mode': 'traditional',
+    #     },
+    #     'NAME': config('MYSQL_DB3_NAME'),
+    #     'USER': config('MYSQL_DB_USER'),
+    #     'PASSWORD': config('MYSQL_DB_PASS'),
+    #     'HOST': config('MYSQL_DB_HOST'),
+    #     'PORT': config('MYSQL_DB_PORT'),
+    # },
     config('MYSQL_DB4_NAME'): {
         'ENGINE': 'mysql.connector.django',
         'OPTIONS': {
