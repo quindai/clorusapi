@@ -13,21 +13,17 @@ class CompanyAPIView(generics.GenericAPIView,
     serializer_class = CompanySerializer
     filter_backends = [
         rest_framework.DjangoFilterBackend,
-        filters.SearchFilter
+        # filters.SearchFilter
     ]
 
     filterset_fields = '__all__'
-    permission_classes = [permissions.IsAuthenticated]
+    permissions = (permissions.IsAuthenticated,)
 
-    token_param_config = openapi.Parameter('token', in_=openapi.IN_QUERY, 
+    token_param_config = openapi.Parameter('tokens', in_=openapi.IN_QUERY, 
                         description='Description', type=openapi.TYPE_STRING)
     @swagger_auto_schema(manual_parameters=[token_param_config])
     def get(self, request, *args, **kwargs):
-        breakpoint()
-        print(*args)
-        print(**kwargs)
-        print(request)
-        token = request.GET.get('token')
+        tokens = request.GET.get('tokens')
         return self.list(request, *args, **kwargs)
 
 class CompanyDetailAPIView(generics.GenericAPIView,

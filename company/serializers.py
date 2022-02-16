@@ -6,4 +6,4 @@ class CompanySerializer(serializers.Serializer):
     user = UserAPISerializer(read_only=True)
     class Meta:
         model = Company
-        fields = '__all__'
+        fields = ('cnpj','name')

@@ -8,5 +8,9 @@ class Company(models.Model):
     logo = models.CharField(max_length=10)
     db_name = models.CharField(max_length=100)
 
+    def __str__(self):
+        return self.name
+
     class Meta:
         verbose_name = "Empresa"
+        ordering = ['-name']
