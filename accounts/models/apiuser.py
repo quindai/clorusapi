@@ -1,6 +1,7 @@
 from turtle import update
 from django.db import models
 from .user import User
+from company.models import Company
 
 class APIUser(models.Model):
     TYPE_OF = [
@@ -16,6 +17,7 @@ class APIUser(models.Model):
     
     # Nome da pessoa
     name = models.CharField(max_length=255, verbose_name='Nome da pessoa')
+    active_company = models.ForeignKey(Company, on_delete=models.CASCADE, null=True, blank=True)
 
     def __str__(self):
         return f'{self.name}'

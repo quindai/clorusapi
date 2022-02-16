@@ -10,8 +10,13 @@ from django.urls import reverse
 
 from django.contrib import auth
 from rest_framework.exceptions import AuthenticationFailed
-
 from django.contrib.auth import get_user_model
+from .models import APIUser
+
+class UserAPISerializer(serializers.Serializer):
+    class Meta:
+        model = APIUser
+        fields = ['email']
 
 class LoginAPISerializer(serializers.Serializer):
     email = serializers.EmailField(max_length=255, min_length=3)
