@@ -49,4 +49,12 @@ Para rodar o projeto, use o seguinte comando
 ./manage.py runserver
 ```
 
+## Comandos úteis
+
+Remover todos os tokens da lista de rejeitados.
+
+```python
+./manage.py flushexpiredtokens
+```
+
 ##
