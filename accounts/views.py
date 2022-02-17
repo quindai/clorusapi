@@ -2,12 +2,17 @@ from django.shortcuts import render
 from rest_framework import generics
 from rest_framework.response import Response
 from rest_framework import status
-from .serializers import LoginAPISerializer, LogoutSerializer
+
+from accounts.models.user import User
+from .serializers import LoginAPISerializer, LogoutSerializer, RequestPasswordResetEmailSerializer, SetNewPasswordSerializer
 from rest_framework import permissions
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from django.utils.encoding import smart_str, force_str, smart_bytes, DjangoUnicodeDecodeError
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
 
 class LoginAPIView(generics.GenericAPIView):
     serializer_class = LoginAPISerializer
@@ -41,3 +46,34 @@ class LogoutAPIView(generics.GenericAPIView):
         # except Exception as e:
         #     print(e)
         #     return Response(status=status.HTTP_400_BAD_REQUEST)
+
+class RequestPasswordResetEmailView(generics.GenericAPIView):
+    serializer_class = RequestPasswordResetEmailSerializer
+
+    def post(self, request):
+        # data = {'request': request, 'email':request.data}
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return Response({'sucesso':'Enviamos o link para o seu email.'}, status=status.HTTP_202_ACCEPTED)
+
+class PasswordTokenCheckAPI(generics.GenericAPIView):
+    def get(self, request, uidb64, token):
+        try:
+            id = smart_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(id=id)
+            if not PasswordResetTokenGenerator().check_token(user, token):
+                return Response({'error': 'Token não é válodo'}, status=status.HTTP_403_FORBIDDEN)
+
+            ret = {'sucesso':True,'message':'Credenciais válidas.','uidb64':uidb64, 'token':token}
+            return Response(ret, status=status.HTTP_202_ACCEPTED)
+        except DjangoUnicodeDecodeError as e:
+            return Response({'error': 'Token não é válodo'}, status=status.HTTP_403_FORBIDDEN)
+
+class SetNewPasswordAPIView(generics.GenericAPIView):
+    serializer_class=SetNewPasswordSerializer
+
+    def patch(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        ret = {'sucesso':True, 'message':'Senha definida com sucesso'}
+        return Response(ret, status=status.HTTP_200_OK)

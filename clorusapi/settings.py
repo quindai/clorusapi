@@ -30,6 +30,7 @@ DEBUG = config('DEBUG', cast=bool)
 ALLOWED_HOSTS = ['*']
 
 AUTH_USER_MODEL='accounts.User'
+SITE_ID = 1
 
 # Application definition
 CUSTOM_APPS = ['accounts', 'company']
@@ -41,11 +42,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'django_extensions',
-    'drf_yasg'
+    'drf_yasg',
 ]
 
 
@@ -141,9 +143,9 @@ REST_FRAMEWORK = {
         # 'rest_framework.authentication.TokenAuthentication',
         # 'rest_framework.authentication.SessionAuthentication',
     ),
-    # 'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    # 'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema',
-    # 'PAGE_SIZE':100,
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema',
+    'PAGE_SIZE':100,
 }
 
 WSGI_APPLICATION = 'clorusapi.wsgi.application'
@@ -151,6 +153,8 @@ WSGI_APPLICATION = 'clorusapi.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
+
+EMAIL_BACKEND= 'django.core.mail.backends.console.EmailBackend'
 
 ACTIVATED_DATABASE = {
     'default': {

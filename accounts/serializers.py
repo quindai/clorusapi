@@ -1,4 +1,4 @@
-import email
+from attr import attr
 from rest_framework import serializers
 from django.core.mail import send_mail
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
@@ -12,7 +12,7 @@ from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 from django.contrib import auth
 from rest_framework.exceptions import AuthenticationFailed
 from django.contrib.auth import get_user_model
-from .models import APIUser
+from .models import APIUser, User
 
 class UserAPISerializer(serializers.Serializer):
     class Meta:
@@ -48,7 +48,7 @@ class LogoutSerializer(serializers.Serializer):
     refresh = serializers.CharField()
 
     default_error_messages = {
-        'bad_token':'Token is expired or invalid. Please contact admin.'
+        'bad_token':'Token expirou ou está inválido. Por favor contacte o admin.'
     }
 
     def validate(self, attrs):
@@ -60,3 +60,61 @@ class LogoutSerializer(serializers.Serializer):
             RefreshToken(self.token).blacklist()
         except TokenError:
             self.fail('bad_token')
+
+class RequestPasswordResetEmailSerializer(serializers.Serializer):
+    email = serializers.EmailField(min_length=2)
+    data = serializers.DictField(read_only=True)
+
+    class Meta:
+        fields = ['email']
+
+    def validate(self, attrs):
+            breakpoint()
+            # email = attrs['data'].get('email','')
+            email = attrs.get('email','')
+            if APIUser.objects.filter(user__email=email).exists():
+                # send email
+                user = User.objects.get(email=email)
+                uidb64 = urlsafe_base64_encode(smart_bytes(user.id))
+                token= PasswordResetTokenGenerator().make_token(user)
+                # current_site = get_current_site(
+                    # request=attrs['data'].get('request')).domain
+                current_site = 'localhost:8000'
+
+                relative_link = reverse('reset_password_confirm', kwargs={'uidb64': uidb64, 'token':token})
+                abs_url = f'http://{current_site}{relative_link}'
+                send_mail(
+                    subject='BI Clorus - Recuperar senha',
+                    message=f'Oi {user.username} \n Use o link a seguir para redefinir a sua senha: \n{abs_url}',
+                    from_email='bi@clorus.com',
+                    recipient_list=[email],
+                    fail_silently=False)
+            return super().validate(attrs)
+
+class SetNewPasswordSerializer(serializers.Serializer):
+    password=serializers.CharField(
+        min_length=8, max_length=68, write_only=True)
+    token=serializers.CharField(
+        min_length=1, write_only=True)
+    uidb64=serializers.CharField(
+        min_length=1, write_only=True)
+
+    class Meta:
+        fields = ['password','token','uidb64']
+
+    def validate(self, attrs):
+        try:
+            password = attrs.get('password')
+            token = attrs.get('token')
+            uidb64 = attrs.get('uidb64')
+            id = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(id=id)
+
+            if not PasswordResetTokenGenerator.check_token(user, token):
+                raise AuthenticationFailed('O token é inválido', 401)
+            
+            user.set_password(password)
+            user.save()
+            return user
+        except Exception as e:
+            raise AuthenticationFailed('O token é inválido', 401)

@@ -42,22 +42,20 @@ class CompanyAPIView(generics.GenericAPIView,
         return self.list(request, *args, **kwargs)
         # self.list(request, *args, **kwargs)
 
-class CompanyDetailAPIView(generics.GenericAPIView):
-    pass
-    # generics.GenericAPIView,
-    #                         mixins.RetrieveModelMixin,
-    #                         mixins.UpdateModelMixin):
-    # queryset = Company.objects.all()
-    # serializer_class = CompanySerializer
-    # filter_backends = [
-    #     rest_framework.DjangoFilterBackend,
-    #     filters.SearchFilter
-    # ]
+class CompanyDetailAPIView(generics.GenericAPIView,
+                            mixins.RetrieveModelMixin,
+                            mixins.UpdateModelMixin):
+    queryset = Company.objects.all()
+    serializer_class = CompanySerializer
+    filter_backends = [
+        rest_framework.DjangoFilterBackend,
+        filters.SearchFilter
+    ]
     
-    # permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
 
-    # def get(self, request, *args, **kwargs):
-    #     return self.retrieve(request, *args, **kwargs)
+    def get(self, request, *args, **kwargs):
+        return self.retrieve(request, *args, **kwargs)
 
-    # def put(self, request, *args, **kwargs):
-    #     return self.update(request, *args, **kwargs)
+    def put(self, request, *args, **kwargs):
+        return self.update(request, *args, **kwargs)
