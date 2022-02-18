@@ -9,13 +9,14 @@ from company.serializers import CompanySerializer
 from rest_framework.renderers import JSONRenderer
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+from clorusapi.permissions.basic import BasicPermission
 
 class CompanyAPIView(generics.GenericAPIView,
                     mixins.ListModelMixin):
     # serializer_class = CompanySerializer
     # queryset = Company.objects.all()
 
-    permission_classes = (permissions.IsAuthenticated,)
+    permission_classes = (permissions.IsAuthenticated, BasicPermission,)
     # generics.GenericAPIView,
     #                 mixins.ListModelMixin):
     queryset = Company.objects.all()
@@ -29,6 +30,7 @@ class CompanyAPIView(generics.GenericAPIView,
     # #     return self.queryset.filter(pk=self.request.user.active_company.pk)
 
     filterset_fields = '__all__'
+    search_fields = ['user']
     # permission_classes = (permissions.IsAuthenticated,)
 
     # token_param_config = openapi.Parameter('tokens', in_=openapi.IN_QUERY, 
@@ -52,7 +54,9 @@ class CompanyDetailAPIView(generics.GenericAPIView,
         filters.SearchFilter
     ]
     
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, BasicPermission]
+    filterset_fields = '__all__'
+    search_fields = ['user']
 
     def get(self, request, *args, **kwargs):
         return self.retrieve(request, *args, **kwargs)

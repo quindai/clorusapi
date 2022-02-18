@@ -69,7 +69,7 @@ class RequestPasswordResetEmailSerializer(serializers.Serializer):
         fields = ['email']
 
     def validate(self, attrs):
-            breakpoint()
+            # breakpoint()
             # email = attrs['data'].get('email','')
             email = attrs.get('email','')
             if APIUser.objects.filter(user__email=email).exists():
@@ -103,6 +103,7 @@ class SetNewPasswordSerializer(serializers.Serializer):
         fields = ['password','token','uidb64']
 
     def validate(self, attrs):
+        
         try:
             password = attrs.get('password')
             token = attrs.get('token')
@@ -110,7 +111,7 @@ class SetNewPasswordSerializer(serializers.Serializer):
             id = force_str(urlsafe_base64_decode(uidb64))
             user = User.objects.get(id=id)
 
-            if not PasswordResetTokenGenerator.check_token(user, token):
+            if not PasswordResetTokenGenerator().check_token(user, token):
                 raise AuthenticationFailed('O token é inválido', 401)
             
             user.set_password(password)
