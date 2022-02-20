@@ -56,7 +56,7 @@ class RequestPasswordResetEmailView(generics.GenericAPIView):
         # data = {'request': request, 'email':request.data}
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
-        return Response({'sucesso':'Enviamos o link para o seu email.'}, status=status.HTTP_202_ACCEPTED)
+        return Response({'success':'Enviamos o link para o seu email.'}, status=status.HTTP_202_ACCEPTED)
 
 class PasswordTokenCheckAPI(generics.GenericAPIView):
     def get(self, request, uidb64, token):
@@ -64,12 +64,12 @@ class PasswordTokenCheckAPI(generics.GenericAPIView):
             id = smart_str(urlsafe_base64_decode(uidb64))
             user = User.objects.get(id=id)
             if not PasswordResetTokenGenerator().check_token(user, token):
-                return Response({'error': 'Token não é válido'}, status=status.HTTP_403_FORBIDDEN)
+                return Response({'error': 'Token não é válido.'}, status=status.HTTP_403_FORBIDDEN)
 
-            ret = {'sucesso':True,'message':'Credenciais válidas.','uidb64':uidb64, 'token':token}
+            ret = {'success':True,'message':'Credenciais válidas.','uidb64':uidb64, 'token':token}
             return Response(ret, status=status.HTTP_202_ACCEPTED)
         except DjangoUnicodeDecodeError as e:
-            return Response({'error': 'Token não é válido'}, status=status.HTTP_403_FORBIDDEN)
+            return Response({'error': 'Token não é válido.'}, status=status.HTTP_403_FORBIDDEN)
 
 class SetNewPasswordAPIView(generics.GenericAPIView):
     serializer_class=SetNewPasswordSerializer
@@ -77,5 +77,5 @@ class SetNewPasswordAPIView(generics.GenericAPIView):
     def patch(self, request):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
-        ret = {'sucesso':True, 'message':'Senha definida com sucesso'}
+        ret = {'success':'Senha definida com sucesso.'}
         return Response(ret, status=status.HTTP_200_OK)
