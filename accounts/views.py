@@ -1,7 +1,8 @@
+from functools import partial
 from django.shortcuts import render
 from rest_framework import generics
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status, mixins
 
 from accounts.models.user import User
 from .serializers import LoginAPISerializer, LogoutSerializer, RequestPasswordResetEmailSerializer, SetNewPasswordSerializer
@@ -13,6 +14,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from clorusapi.permissions.basic import BasicPermission
 
 class LoginAPIView(generics.GenericAPIView):
     serializer_class = LoginAPISerializer

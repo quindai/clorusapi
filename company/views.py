@@ -10,8 +10,11 @@ from rest_framework.renderers import JSONRenderer
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from clorusapi.permissions.basic import BasicPermission
+from rest_framework.decorators import api_view, permission_classes
+from accounts.models.apiuser import APIUser
 
 class CompanyAPIView(generics.GenericAPIView,
+                    mixins.RetrieveModelMixin,
                     mixins.ListModelMixin):
     # serializer_class = CompanySerializer
     # queryset = Company.objects.all()
@@ -30,7 +33,7 @@ class CompanyAPIView(generics.GenericAPIView,
     # #     return self.queryset.filter(pk=self.request.user.active_company.pk)
 
     filterset_fields = '__all__'
-    search_fields = ['user']
+    # search_fields = ['user']
     # permission_classes = (permissions.IsAuthenticated,)
 
     # token_param_config = openapi.Parameter('tokens', in_=openapi.IN_QUERY, 
@@ -46,20 +49,31 @@ class CompanyAPIView(generics.GenericAPIView,
 
 class CompanyDetailAPIView(generics.GenericAPIView,
                             mixins.RetrieveModelMixin,
-                            mixins.UpdateModelMixin):
+                            # mixins.UpdateModelMixin
+                            ):
     queryset = Company.objects.all()
     serializer_class = CompanySerializer
+
     filter_backends = [
-        rest_framework.DjangoFilterBackend,
-        filters.SearchFilter
+        # rest_framework.DjangoFilterBackend,
+        # filters.SearchFilter
     ]
     
     permission_classes = [permissions.IsAuthenticated, BasicPermission]
-    filterset_fields = '__all__'
-    search_fields = ['user']
+    # filterset_fields = '__all__'
+    # search_fields = ['user']
 
     def get(self, request, *args, **kwargs):
         return self.retrieve(request, *args, **kwargs)
 
     def put(self, request, *args, **kwargs):
-        return self.update(request, *args, **kwargs)
+        user = APIUser.objects.get(user=request.user)
+        breakpoint()
+        # return self.update(request, *args, **kwargs)
+        return ''
+
+# @api_view(['PUT'])
+# @permission_classes([permissions.IsAuthenticated, BasicPermission])
+# def company_update(request):
+#     # if (request.method == 'PUT'):
+#     return UpdateCompanyAPIView(request)
