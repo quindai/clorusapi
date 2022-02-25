@@ -54,12 +54,6 @@ class CompanyDetailAPIView(generics.GenericAPIView,
         except Exception:
             return Response({'error':'Não conseguimos realizar a operação.'}, status=status.HTTP_400_BAD_REQUEST)
 
-# class StarCompanyAPIView(generics.GenericAPIView):
-    # def get(self, request, *args, **kwargs):
-        # breakpoint()
-# def star_company_view(request):
-#     return StarCompanyInternView(request)
-
 class StarCompanyInternView(APIView):
     serializer_class = StarCompanyInternSerializer
     permission_classes = (permissions.IsAuthenticated, BasicPermission)
