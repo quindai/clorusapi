@@ -5,7 +5,7 @@ from rest_framework import (
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from company.models import Company
-from company.serializers import CompanySerializer
+from company.serializers import CompanySerializer, StarCompanyInternSerializer
 from rest_framework.renderers import JSONRenderer
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
@@ -33,7 +33,6 @@ class CompanyAPIView(generics.GenericAPIView,
         # companies = Company.objects.all()
         # serializer = CompanySerializer(companies, many=True)
         return self.list(request, *args, **kwargs)
-        # self.list(request, *args, **kwargs)
 
 class CompanyDetailAPIView(generics.GenericAPIView,
                             mixins.RetrieveModelMixin,
@@ -42,12 +41,6 @@ class CompanyDetailAPIView(generics.GenericAPIView,
     queryset = Company.objects.all()
     serializer_class = CompanySerializer
     permission_classes = [permissions.IsAuthenticated, BasicPermission]
-
-    # filter_backends = [
-    #     rest_framework.DjangoFilterBackend,
-    #     filters.SearchFilter
-    # ]
-    
 
     def get(self, request, *args, **kwargs):
         return self.retrieve(request, *args, **kwargs)
@@ -61,3 +54,55 @@ class CompanyDetailAPIView(generics.GenericAPIView,
         except Exception:
             return Response({'error':'Não conseguimos realizar a operação.'}, status=status.HTTP_400_BAD_REQUEST)
 
+# class StarCompanyAPIView(generics.GenericAPIView):
+    # def get(self, request, *args, **kwargs):
+        # breakpoint()
+# def star_company_view(request):
+#     return StarCompanyInternView(request)
+
+class StarCompanyInternView(APIView):
+    serializer_class = StarCompanyInternSerializer
+    permission_classes = (permissions.IsAuthenticated, BasicPermission)
+
+    def get_object(self, user):
+        try:
+            # breakpoint()
+            return APIUser.objects.get(user=user).star_companies.all()
+        except APIUser.DoesNotExist:
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def get(self, request, *args, **kwargs):
+        companies = self.get_object(request.user)
+        serializer = self.serializer_class(companies, many=True)
+        return Response(serializer.data)
+
+
+    id_param_config = openapi.Parameter('id', in_=openapi.IN_QUERY, 
+                        description='Description', type=openapi.TYPE_INTEGER)
+    @swagger_auto_schema(manual_parameters=[id_param_config])
+    def post(self, request, *args, **kwargs):
+        """
+        URL
+        ---
+        `/company/start/?id=<int>`
+
+        Parameters
+        ----------
+        id:
+            Identificador da empresa.
+        """
+        if request.GET.get('id') is None:
+            return Response({'error':'Campo id não informado.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            company = Company.objects.get(pk=request.GET.get('id'))
+            user = APIUser.objects.get(user=request.user)
+            if company in user.star_companies.all():
+                user.star_companies.remove(company)
+            else:
+                user.star_companies.add(company)
+            user.save()
+            return Response({'success':'Operação realizada com sucesso.'},status=status.HTTP_200_OK)
+        except Company.DoesNotExist:
+            return Response({'error':'Empresa não existe.'},status=status.HTTP_404_NOT_FOUND)
+        except Exception: 
+            return Response({'error':'Não conseguimos realizar a operação.'}, status=status.HTTP_400_BAD_REQUEST)

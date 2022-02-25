@@ -1,4 +1,6 @@
+from wsgiref import validate
 from attr import attr
+from django.forms import IntegerField
 from rest_framework import serializers
 from django.core.mail import send_mail
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
@@ -91,6 +93,24 @@ class RequestPasswordResetEmailSerializer(serializers.Serializer):
                     fail_silently=False)
             return super().validate(attrs)
 
+class PasswordTokenCheckSerializer(serializers.Serializer):
+    class Meta:
+        model = get_user_model
+        fields = ['id']
+    
+    def validate(self, attrs):
+        # try:
+        #     id = smart_str(urlsafe_base64_decode(uidb64))
+        #     user = User.objects.get(id=id)
+        #     if not PasswordResetTokenGenerator().check_token(user, token):
+        #         return Response({'error': 'Token não é válido.'}, status=status.HTTP_403_FORBIDDEN)
+
+        #     ret = {'success':True,'message':'Credenciais válidas.','uidb64':uidb64, 'token':token}
+        #     return Response(ret, status=status.HTTP_202_ACCEPTED)
+        # except DjangoUnicodeDecodeError as e:
+        #     return Response({'error': 'Token não é válido.'}, status=status.HTTP_403_FORBIDDEN)
+        return super().validate(attrs)
+
 class SetNewPasswordSerializer(serializers.Serializer):
     password=serializers.CharField(
         min_length=8, max_length=68, write_only=True)
@@ -119,3 +139,11 @@ class SetNewPasswordSerializer(serializers.Serializer):
             return user
         except Exception as e:
             raise AuthenticationFailed('O token é inválido', 401)
+
+# class StarCompanyInternSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = APIUser
+#         fields = ['id','star_companies']
+
+#     def validate(self, attrs):
+#         return super().validate(attrs)
