@@ -1,4 +1,3 @@
-from turtle import update
 from django.db import models
 from .user import User
 from company.models import Company
