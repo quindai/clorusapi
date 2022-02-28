@@ -86,7 +86,7 @@ class CustomQuery(models.Model):
                  
             with cnx.cursor(buffered=True) as cursor:  
                 cursor.execute(stmt)
-                row = cursor.fetchone()
+                row = cursor.fetchall()
                 cursor.close()
         except Exception:
             pass
