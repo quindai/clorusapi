@@ -22,12 +22,20 @@ class CampaignView(APIView, LimitOffsetPagination):
     def get(self, request, *args, **kwargs):
         custom_query = self.get_object(request.user)
         query_returned = custom_query.query()
-        campanhas = list(map(lambda dict: {
-            'campaign_id':dict['campaign_id'],
-            'campaign_name':dict['campaign_name']}, query_returned))
+        # breakpoint()
+
+        if 'campaign_id' in query_returned[0].keys():
+            campanhas = list(map(lambda dict: {
+                'campaign_id':dict['campaign_id'],
+                'campaign_name':dict['campaign_name']}, query_returned))
+        elif 'Campaign ID' in query_returned[0].keys():
+            campanhas = list(map(lambda dict: {
+                'campaign_id':dict['Campaign ID'],
+                'campaign_name':dict['Campaign']}, query_returned))
+        else:
+            campanhas = list(map(lambda dict: {
+                'campaign_id':'',
+                'campaign_name':dict['Campaign']}, query_returned))
         response = self.paginate_queryset(campanhas, request, view=self)
         # breakpoint()
-        # campanhas = query_returned[['campaign_id','campaign_name']]
-        # breakpoint()
         return self.get_paginated_response(response)
-        # return Response({'data':campanhas}, status=status.HTTP_200_OK)

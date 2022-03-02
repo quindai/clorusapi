@@ -50,6 +50,7 @@ class CustomQuery(models.Model):
 
     class Meta:
         verbose_name = "Query Personalizada"
+        verbose_name_plural = "Queries Personalizadas"
         # ordering = ['datasource']
     
     def clean(self, *args, **kwargs): 
