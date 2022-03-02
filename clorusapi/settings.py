@@ -32,7 +32,7 @@ ALLOWED_HOSTS = ['*']
 AUTH_USER_MODEL='accounts.User'
 
 # Application definition
-CUSTOM_APPS = ['accounts', 'company']
+CUSTOM_APPS = ['accounts', 'company', 'campaigns']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -138,8 +138,6 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-        # 'rest_framework.authentication.TokenAuthentication',
-        # 'rest_framework.authentication.SessionAuthentication',
     ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema',

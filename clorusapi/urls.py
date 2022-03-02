@@ -29,7 +29,7 @@ schema_view = get_schema_view(
    openapi.Info(
       title="Clorus API",
       default_version='v1',
-      description="API de uso interno para construção aplicações WEB/Mobile.",
+      description="API de uso interno para construção de aplicações WEB/Mobile.",
       terms_of_service="/",
       contact=openapi.Contact(email="randy.quindai@gmail.com"),
       license=openapi.License(name="Local License"),
@@ -43,6 +43,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('auth/', include('accounts.urls')),
     path('company/', include('company.urls')),
+    path('campaign/', include('campaigns.urls')),
     # path('company/<int:pk>/', UpdateCompanyAPIView.as_view(), name='update_company'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
     path('api.json/', schema_view.without_ui(cache_timeout=0), name='schema-swagger-ui'),

@@ -1,7 +1,6 @@
-from urllib import response
 from django_filters import rest_framework
 from rest_framework import (
-    mixins, generics, filters, permissions, status)
+    mixins, generics, permissions, status)
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from company.models import Company

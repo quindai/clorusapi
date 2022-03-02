@@ -84,7 +84,7 @@ class CustomQuery(models.Model):
             stmt = "SELECT * FROM "+ \
                 '_'.join([self.company_source,self.datasource])
                  
-            with cnx.cursor(buffered=True) as cursor:  
+            with cnx.cursor(buffered=True, dictionary=True) as cursor:  
                 cursor.execute(stmt)
                 row = cursor.fetchall()
                 cursor.close()
