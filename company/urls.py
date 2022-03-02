@@ -10,5 +10,5 @@ urlpatterns = [
     # path('<int:pk>/', company_update, name='company_detail'),
     path('<int:pk>/', CompanyDetailAPIView.as_view(), name='company_detail'),
     path('star/', StarCompanyInternView.as_view(), name='company_star'),
-    
+    # TODO path active PUT/GET
 ]

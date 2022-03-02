@@ -3,6 +3,8 @@ from company.models import CustomQuery
 # Create your models here.
 
 class Product(models.Model):
+    # unidade
+    # meta
     pass
 
 class Campaign(models.Model):

@@ -26,10 +26,14 @@ class LoginAPISerializer(serializers.Serializer):
     password = serializers.CharField(max_length=100, min_length=1, write_only=True)
     username = serializers.CharField(max_length=255, min_length=3, read_only=True)
     token = serializers.CharField(max_length=255, min_length=3, read_only=True)
+    user_type = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model=get_user_model
-        fields=['email','password','username','token']
+        fields=['email','password','username','token','user_type']
+
+    def get_user_type(self, obj):
+        return APIUser.objects.get(user__email=obj['email']).user_type
 
     def validate(self, value):
         email=value.get('email','')
