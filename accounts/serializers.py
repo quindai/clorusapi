@@ -40,14 +40,15 @@ class LoginAPISerializer(serializers.Serializer):
         password=value.get('password','')
         user=auth.authenticate(email=email, password=password)
         if not user:
-            raise AuthenticationFailed('Invalid credentials.')
+            raise AuthenticationFailed('Credenciais inválidas.')
         if not user.is_active:
-            raise AuthenticationFailed('Account disabled, contact admin.')
+            raise AuthenticationFailed('Conta desativada, contacte o admin.')
         return {
             'email': user.email,
             'username': user.username,
             'token': user.get_tokens_for_user
         }
+
         # return super().validate(value)
 
 class LogoutSerializer(serializers.Serializer):

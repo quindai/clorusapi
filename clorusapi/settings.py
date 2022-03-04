@@ -150,7 +150,14 @@ WSGI_APPLICATION = 'clorusapi.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
-EMAIL_BACKEND= 'django.core.mail.backends.console.EmailBackend'
+# EMAIL_BACKEND= 'django.core.mail.backends.console.EmailBackend'
+
+EMAIL_BACKEND= config('EMAIL_BACKEND')
+EMAIL_HOST_USER=config('EMAIL_HOST_USER')
+EMAIL_HOST=config('EMAIL_HOST')
+EMAIL_PORT=config('EMAIL_PORT')
+EMAIL_USE_TLS=config('EMAIL_USE_TLS')
+EMAIL_HOST_PASSWORD=config('EMAIL_HOST_PASS')
 
 ACTIVATED_DATABASE = {
     'default': {
