@@ -20,14 +20,14 @@ from clorusapi.permissions.basic import BasicPermission
 class LoginAPIView(generics.GenericAPIView):
     serializer_class = LoginAPISerializer
     def post(self, request):
-        breakpoint()
+        # breakpoint()
         try:
             serializer = self.serializer_class(data=request.data)
             serializer.is_valid(raise_exception=True)
 
             return Response(serializer.data, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response(e, status=status.HTTP_400_BAD_REQUEST)
+        except Exception:
+            return Response({'error':'Usuário não encontrado.'},status=status.HTTP_400_BAD_REQUEST)
 
 class LogoutAPIView(generics.GenericAPIView):
     serializer_class = LogoutSerializer
