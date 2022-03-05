@@ -1,7 +1,5 @@
-from wsgiref import validate
-from attr import attr
-from django.forms import IntegerField
-from rest_framework import serializers
+from rest_framework import serializers, exceptions
+from rest_framework.exceptions import AuthenticationFailed
 from django.core.mail import send_mail
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.encoding import smart_str, force_str, smart_bytes, DjangoUnicodeDecodeError
@@ -12,7 +10,6 @@ from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 # from accounts.models.person import Person
 
 from django.contrib import auth
-from rest_framework.exceptions import AuthenticationFailed
 from django.contrib.auth import get_user_model
 from .models import APIUser, User
 
@@ -104,17 +101,23 @@ class PasswordTokenCheckSerializer(serializers.Serializer):
         fields = ['id']
     
     def validate(self, attrs):
-        # try:
-        #     id = smart_str(urlsafe_base64_decode(uidb64))
-        #     user = User.objects.get(id=id)
-        #     if not PasswordResetTokenGenerator().check_token(user, token):
-        #         return Response({'error': 'Token não é válido.'}, status=status.HTTP_403_FORBIDDEN)
+        # breakpoint()
+        try:
+            uidb64=self.context.get("uidb64")
+            token=self.context.get("token")
+            id = smart_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(id=id)
+            if not PasswordResetTokenGenerator().check_token(user, token):
+                raise exceptions.PermissionDenied({'error': 'Token não é válido.'})
+            return super().validate({'success':True,
+                    'message':'Credenciais válidas.',
+                    'uidb64':uidb64, 'token':token
+                    })
 
-        #     ret = {'success':True,'message':'Credenciais válidas.','uidb64':uidb64, 'token':token}
         #     return Response(ret, status=status.HTTP_202_ACCEPTED)
-        # except DjangoUnicodeDecodeError as e:
-        #     return Response({'error': 'Token não é válido.'}, status=status.HTTP_403_FORBIDDEN)
-        return super().validate(attrs)
+        except DjangoUnicodeDecodeError as e:
+            raise exceptions.PermissionDenied({'error': 'Token não é válido.'})
+        # return super().validate(attrs)
 
 class SetNewPasswordSerializer(serializers.Serializer):
     password=serializers.CharField(

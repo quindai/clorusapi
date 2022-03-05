@@ -1,6 +1,6 @@
 from django.urls import path
 
-from company.views import CompanyAPIView, CompanyDetailAPIView, StarCompanyInternView
+from company.views import CompanyAPIView, CompanyActiveInternView, CompanyDetailAPIView, CompanyStarInternView
 
 # , StarCompanyAPIView
 
@@ -9,6 +9,7 @@ urlpatterns = [
     path('', CompanyAPIView.as_view(), name='company'),
     # path('<int:pk>/', company_update, name='company_detail'),
     path('<int:pk>/', CompanyDetailAPIView.as_view(), name='company_detail'),
-    path('star/', StarCompanyInternView.as_view(), name='company_star'),
+    path('star/', CompanyStarInternView.as_view(), name='company_star'),
+    path('active/', CompanyActiveInternView.as_view(), name='company_active'),
     # TODO path active PUT/GET
 ]
