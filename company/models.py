@@ -38,14 +38,13 @@ class CustomQuery(models.Model):
                 params={'value': value},)
         else:
             cnx.close()
-            
-    def validate_company_datasource(db_name, value):
-        breakpoint()
-        pass
 
-    db_name = models.CharField(max_length=100, validators =[validate_db_name], help_text="Nome do Schema no banco MySql. Exemplo: client_data") #exemplo client_data
-    company_source = models.CharField(max_length=100, help_text="Nome da empresa no banco MySQL. Exemplo: sebraeal|sebrae") #[sebraeal|sebrae]
-    datasource = models.CharField(max_length=100, null=True, blank=True, help_text="Nome do social. Exemplo: googleads|facebookads|programatica") #[googleads|facebookads|programatica]
+    db_name = models.CharField(max_length=100, validators =[validate_db_name], 
+                    help_text="Nome do Schema no banco MySql. Exemplo: client_data") #exemplo client_data
+    company_source = models.CharField(max_length=100, 
+                    help_text="Nome da empresa no banco MySQL. Exemplo: sebraeal|sebrae") #[sebraeal|sebrae]
+    datasource = models.CharField(max_length=100, null=True, 
+                    blank=True, help_text="Nome do social. Exemplo: googleads|facebookads|programatica") #[googleads|facebookads|programatica]
     company = models.ForeignKey(Company, related_name='company_rel', on_delete=models.CASCADE)
 
     class Meta:
