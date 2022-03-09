@@ -74,3 +74,7 @@ class SetNewPasswordAPIView(generics.GenericAPIView):
         ret = {'success':'Senha definida com sucesso.'}
         return Response(ret, status=status.HTTP_200_OK)
 
+class GetUserAPIView(APIView):
+    permission_classes = (permissions.IsAuthenticated,)
+    def get(self, request):
+        return Response({'data':str(request.user)}, status=status.HTTP_200_OK)

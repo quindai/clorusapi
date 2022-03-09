@@ -10,7 +10,11 @@ class Product(models.Model):
 class Campaign(models.Model):
     pass
     GOAL_SELECT = [
-        ('1','Colocar Opções')
+        ('1','Tráfego'),
+        ('2','Reconhecimento de marca'),
+        ('3','Engajamento'),
+        ('4','Geração de lead'),
+        ('5','Vendas'),
     ]
     name = models.CharField(max_length=255, default='1', verbose_name="Nome da Campanha")
     # image = models.TextField(default='1')
