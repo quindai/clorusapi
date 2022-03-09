@@ -1,13 +1,14 @@
 from rest_framework.response import Response
 from rest_framework import status, generics, permissions
 
-from .serializers import LoginAPISerializer, LogoutSerializer, PasswordTokenCheckSerializer, RequestPasswordResetEmailSerializer, SetNewPasswordSerializer
+from .serializers import LoginAPISerializer, LogoutSerializer, PasswordTokenCheckSerializer, RequestPasswordResetEmailSerializer, SetNewPasswordSerializer, UserAPISerializer
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 # from drf_yasg.utils import swagger_auto_schema
 # from drf_yasg import openapi
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from clorusapi.permissions.basic import BasicPermission
+from .models.user import User
 
 class LoginAPIView(generics.GenericAPIView):
     serializer_class = LoginAPISerializer
@@ -66,7 +67,7 @@ class PasswordTokenCheckAPI(generics.GenericAPIView):
         return Response(ret, status=status.HTTP_202_ACCEPTED)
 
 class SetNewPasswordAPIView(generics.GenericAPIView):
-    serializer_class=SetNewPasswordSerializer
+    serializer_class = SetNewPasswordSerializer
 
     def patch(self, request):
         serializer = self.serializer_class(data=request.data)
@@ -74,7 +75,11 @@ class SetNewPasswordAPIView(generics.GenericAPIView):
         ret = {'success':'Senha definida com sucesso.'}
         return Response(ret, status=status.HTTP_200_OK)
 
-class GetUserAPIView(APIView):
+class GetUserAPIView(generics.GenericAPIView):
+    serializer_class = UserAPISerializer
     permission_classes = (permissions.IsAuthenticated,)
     def get(self, request):
-        return Response({'data':str(request.user)}, status=status.HTTP_200_OK)
+        breakpoint()
+        serializer = self.serializer_class(data={'pk':request.user.pk})
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)

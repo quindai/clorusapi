@@ -1,5 +1,6 @@
-from rest_framework import serializers, exceptions
-from rest_framework.exceptions import AuthenticationFailed
+from rest_framework import serializers
+from rest_framework.exceptions import (
+    AuthenticationFailed, PermissionDenied, NotFound)
 from django.core.mail import send_mail
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.encoding import smart_str, force_str, smart_bytes, DjangoUnicodeDecodeError
@@ -14,9 +15,27 @@ from django.contrib.auth import get_user_model
 from .models import APIUser, User
 
 class UserAPISerializer(serializers.Serializer):
+    user_type = serializers.IntegerField(read_only=True)
+    name = serializers.CharField(max_length=255, read_only=True)
+    username = serializers.CharField(max_length=255, min_length=3, read_only=True)
+    email = serializers.EmailField(max_length=255, read_only=True)
+
     class Meta:
         model = APIUser
-        fields = ['email']
+        fields = '__all__'
+
+    def validate(self, value):
+        breakpoint()
+        user_type
+        name
+        username
+        email
+        return {
+            'user_type':user_type,
+            'name':name,  
+            'username':username,
+            'email':email
+        }
 
 class LoginAPISerializer(serializers.Serializer):
     email = serializers.EmailField(max_length=255, min_length=3)
@@ -76,9 +95,10 @@ class RequestPasswordResetEmailSerializer(serializers.Serializer):
             # breakpoint()
             # email = attrs['data'].get('email','')
             email = attrs.get('email','')
-            if APIUser.objects.filter(user__email=email).exists():
+            # if APIUser.objects.filter(user__email=email).exists():
+            try:
                 # send email
-                user = User.objects.get(email=email)
+                user = APIUser.objects.get(user__email=email).user
                 uidb64 = urlsafe_base64_encode(smart_bytes(user.id))
                 token= PasswordResetTokenGenerator().make_token(user)
                 # current_site = get_current_site(
@@ -93,7 +113,10 @@ class RequestPasswordResetEmailSerializer(serializers.Serializer):
                     from_email='bi@clorus.com',
                     recipient_list=[email],
                     fail_silently=False)
-            return super().validate(attrs)
+            except APIUser.DoesNotExist:
+                raise NotFound({'error':'Email não cadastrado.'})
+            else:
+                return super().validate(attrs)
 
 class PasswordTokenCheckSerializer(serializers.Serializer):
     class Meta:
@@ -108,7 +131,7 @@ class PasswordTokenCheckSerializer(serializers.Serializer):
             id = smart_str(urlsafe_base64_decode(uidb64))
             user = User.objects.get(id=id)
             if not PasswordResetTokenGenerator().check_token(user, token):
-                raise exceptions.PermissionDenied({'error': 'Token não é válido.'})
+                raise PermissionDenied({'error': 'Token não é válido.'})
             return super().validate({'success':True,
                     'message':'Credenciais válidas.',
                     'uidb64':uidb64, 'token':token
@@ -116,7 +139,7 @@ class PasswordTokenCheckSerializer(serializers.Serializer):
 
         #     return Response(ret, status=status.HTTP_202_ACCEPTED)
         except DjangoUnicodeDecodeError as e:
-            raise exceptions.PermissionDenied({'error': 'Token não é válido.'})
+            raise PermissionDenied({'error': 'Token não é válido.'})
         # return super().validate(attrs)
 
 class SetNewPasswordSerializer(serializers.Serializer):
