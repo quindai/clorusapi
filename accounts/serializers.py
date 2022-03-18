@@ -1,3 +1,4 @@
+from logging import exception
 from rest_framework import serializers
 from rest_framework.exceptions import (
     AuthenticationFailed, PermissionDenied, NotFound)
@@ -25,17 +26,17 @@ class UserAPISerializer(serializers.Serializer):
         fields = '__all__'
 
     def validate(self, value):
-        breakpoint()
-        user_type
-        name
-        username
-        email
-        return {
-            'user_type':user_type,
-            'name':name,  
-            'username':username,
-            'email':email
-        }
+        try:
+            user = APIUser.objects.get(user__pk=self.initial_data['pk'])
+        except APIUser.DoesNotExist:
+            raise NotFound('Usuário não encontrado.')
+        else:
+            return {
+                'user_type':user.user_type,
+                'name':user.name,  
+                'username':user.user.username,
+                'email':user.user.email
+            }
 
 class LoginAPISerializer(serializers.Serializer):
     email = serializers.EmailField(max_length=255, min_length=3)
@@ -163,13 +164,13 @@ class SetNewPasswordSerializer(serializers.Serializer):
             user = User.objects.get(id=id)
 
             if not PasswordResetTokenGenerator().check_token(user, token):
-                raise AuthenticationFailed('O token é inválido', 401)
+                raise AuthenticationFailed('O token é inválido.', 401)
             
             user.set_password(password)
             user.save()
             return user
         except Exception as e:
-            raise AuthenticationFailed('O token é inválido', 401)
+            raise AuthenticationFailed('O token é inválido.', 401)
 
 # class StarCompanyInternSerializer(serializers.ModelSerializer):
 #     class Meta:

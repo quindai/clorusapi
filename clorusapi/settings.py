@@ -34,7 +34,7 @@ CORS_ALLOW_CREDENTIALS = True
 AUTH_USER_MODEL='accounts.User'
 
 # Application definition
-CUSTOM_APPS = ['accounts', 'company', 'campaigns']
+CUSTOM_APPS = ['accounts', 'company', 'campaigns', 'comercial']
 
 INSTALLED_APPS = [
     'django.contrib.admin',

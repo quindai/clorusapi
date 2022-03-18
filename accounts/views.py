@@ -1,14 +1,15 @@
 from rest_framework.response import Response
 from rest_framework import status, generics, permissions
-
-from .serializers import LoginAPISerializer, LogoutSerializer, PasswordTokenCheckSerializer, RequestPasswordResetEmailSerializer, SetNewPasswordSerializer, UserAPISerializer
-from rest_framework.views import APIView
-from rest_framework_simplejwt.tokens import RefreshToken
+# from django.contrib.auth.tokens import PasswordResetTokenGenerator
+# from clorusapi.permissions.basic import BasicPermission
+from .models.user import User
+from .serializers import (
+    LoginAPISerializer, LogoutSerializer, PasswordTokenCheckSerializer, 
+    RequestPasswordResetEmailSerializer, SetNewPasswordSerializer, 
+    UserAPISerializer
+)
 # from drf_yasg.utils import swagger_auto_schema
 # from drf_yasg import openapi
-from django.contrib.auth.tokens import PasswordResetTokenGenerator
-from clorusapi.permissions.basic import BasicPermission
-from .models.user import User
 
 class LoginAPIView(generics.GenericAPIView):
     serializer_class = LoginAPISerializer
@@ -79,7 +80,6 @@ class GetUserAPIView(generics.GenericAPIView):
     serializer_class = UserAPISerializer
     permission_classes = (permissions.IsAuthenticated,)
     def get(self, request):
-        breakpoint()
         serializer = self.serializer_class(data={'pk':request.user.pk})
         serializer.is_valid(raise_exception=True)
         return Response(serializer.data, status=status.HTTP_200_OK)

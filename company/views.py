@@ -84,7 +84,6 @@ class CompanyStarInternView(generics.GenericAPIView,
 
     def get_object(self, user):
         try:
-            # breakpoint()
             return APIUser.objects.get(user=user).star_companies.all()
         except APIUser.DoesNotExist:
             return Response(status=status.HTTP_204_NO_CONTENT)
