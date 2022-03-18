@@ -4,7 +4,7 @@ __pycache__/
 *$py.class
 
 helpers.txt
-myapp_models.png
+*.png
 
 # Database files
 postgres-data/

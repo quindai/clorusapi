@@ -33,8 +33,7 @@ class ComercialManager(models.Manager):
                     models.When(periodicity=Comercial._YEARLY, 
                         then=models.F('_begin_date') + datetime.timedelta(days=360)),
                     output_field=models.DateField()
-                ))
-                ,
+                )),
                 status = models.ExpressionWrapper(
                     #When(F(repeat_periodicty=True),then)
                     models.Q(expiration_date__gt=models.functions.Now()),
@@ -79,7 +78,7 @@ class Comercial(models.Model):
     ]
 
     visualization = models.CharField(max_length=2, choices=DETAIL_VISUALIZATION,
-                    verbose_name="Visualização")
+                    verbose_name="Visualização", default='1')
     begin_date = models.DateField(db_index=True)
     _begin_date = models.DateField(db_index=True, null=True, blank=True)
     # expiration_date = models.DateField(db_index=True)
@@ -87,7 +86,7 @@ class Comercial(models.Model):
                     verbose_name="Seleção de Periodicidade")
     repeat_periodicity = models.BooleanField(default=False)
     segmentation = models.CharField(max_length=2, choices=DETAIL_SEGMENTATION,
-                    verbose_name="Segmentação")
+                    verbose_name="Segmentação", default='1')
 
     objects = ComercialManager()
 
