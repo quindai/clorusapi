@@ -43,6 +43,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('auth/', include('accounts.urls')),
     path('company/', include('company.urls')),
+    path('comercial/', include('comercial.urls')),
     path('campaign/', include('campaigns.urls')),
     # path('company/<int:pk>/', UpdateCompanyAPIView.as_view(), name='update_company'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),

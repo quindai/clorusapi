@@ -94,8 +94,6 @@ class CustomQuery(models.Model):
             return row
         finally:
             cnx.close()
-        # with connections[db_name].cursor() as cursor:
-        # return row
 
     def __str__(self):
         return '{} {}'.format(self.company_source, self.datasource)
