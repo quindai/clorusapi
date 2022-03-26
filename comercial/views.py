@@ -2,9 +2,11 @@ from rest_framework import generics, mixins, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.pagination import LimitOffsetPagination
+from rest_framework.exceptions import NotFound
+from django.db.models import Q
 from clorusapi.permissions.basic import BasicPermission
 from accounts.models.apiuser import APIUser
-from company.models import CustomQuery
+from company.models import CustomQuery, Company
 from .models import Comercial
 from .serializers import ComercialSerializer
 
@@ -22,16 +24,20 @@ class ComercialAPIView(generics.GenericAPIView,
         return self.create(request, *args, **kwargs)
 
 class ComercialDetailsView(APIView, LimitOffsetPagination):
+    permission_classes = [permissions.IsAuthenticated]
     def get_object(self, user):
         try:
-            return CustomQuery.objects.get(company=APIUser.objects.get(user=user).active_company)
+            return CustomQuery.objects.get(Q(company=APIUser.objects.get(user=user).active_company) & Q(db_name='moskit_crm'))
         except CustomQuery.DoesNotExist:
-            return Response({'error':'Empresa não tem query cadastrada.'},
-                        status=status.HTTP_400_BAD_REQUEST)
+            raise NotFound({'error':'Empresa não cadastrada.'})
 
     def get(self, request, *args, **kwargs):
-        custom_query = self.get_object(request.user)
-        query_returned = custom_query.query()
-        breakpoint()
-        response = self.paginate_queryset(query_returned, request, view=self)
-        return self.get_paginated_response(response)
+        try:
+            custom_query = self.get_object(request.user)
+            query_returned = custom_query.query()
+            response = self.paginate_queryset(query_returned, request, view=self)
+        except AttributeError:
+            return Response({'error':'Empresa não tem query cadastrada.'},
+                        status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return self.get_paginated_response(response)
