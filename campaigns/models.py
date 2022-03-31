@@ -18,3 +18,4 @@ class Campaign(models.Model):
     goal_budget = models.CharField(max_length=255, default='1', verbose_name='Meta (Total proveniente de Meta Geral)')
     # products =models.ForeignKey(Product, on_delete=models.CASCADE, help_text='Escolha de produtos (Caso Meta Segmentada)')
     budget = models.CharField(max_length=255, default='1', verbose_name="Valor Investido")
+

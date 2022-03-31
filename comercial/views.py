@@ -27,17 +27,19 @@ class ComercialDetailsView(APIView, LimitOffsetPagination):
     permission_classes = [permissions.IsAuthenticated]
     def get_object(self, user):
         try:
-            return CustomQuery.objects.get(Q(company=APIUser.objects.get(user=user).active_company) & Q(db_name='moskit_crm'))
+            return CustomQuery.objects.filter(query_type='2', company=APIUser.objects.get(user=user).active_company)
         except CustomQuery.DoesNotExist:
             raise NotFound({'error':'Empresa não cadastrada.'})
 
     def get(self, request, *args, **kwargs):
+        custom_query = self.get_object(request.user)
+        crms = []
         try:
-            custom_query = self.get_object(request.user)
-            query_returned = custom_query.query()
-            response = self.paginate_queryset(query_returned, request, view=self)
-        except AttributeError:
-            return Response({'error':'Empresa não tem query cadastrada.'},
-                        status=status.HTTP_400_BAD_REQUEST)
+            for current in custom_query:
+                # query_returned = current.query()
+                crms.extend(current.query())
+            response = self.paginate_queryset(crms, request, view=self)
+        except Exception as e:
+            return Response({'error':str(e)}, status=status.HTTP_404_NOT_FOUND)
         else:
             return self.get_paginated_response(response)

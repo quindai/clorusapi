@@ -14,9 +14,9 @@ class CampaignView(APIView, LimitOffsetPagination):
     
     def get_object(self, user):
         try:
-            return CustomQuery.objects.filter(company=APIUser.objects.get(user=user).active_company)
+            return CustomQuery.objects.filter(query_type='1', company=APIUser.objects.get(user=user).active_company)
         except CustomQuery.DoesNotExist:
-            return Response({'detail':'Empresa não tem query cadastrada.'},
+            return Response({'error':'Empresa não tem query cadastrada.'},
                         status=status.HTTP_400_BAD_REQUEST)
 
     def get(self, request, *args, **kwargs):
@@ -24,7 +24,6 @@ class CampaignView(APIView, LimitOffsetPagination):
         campanhas = []
         try:
             for current in custom_query:
-                breakpoint()
             # query_returned = custom_query.query()
                 query_returned = current.query()
 

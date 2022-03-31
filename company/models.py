@@ -22,19 +22,19 @@ class Company(models.Model):
 
 class CustomMetrics(models.Model):
     DETAIL_METRICS = [
-        (1,'Impressões'),
-        (2,'Cliques'),
-        (3,'Alcance'),
-        (4,'Views de Vídeo/Áudio'),
-        (5,'25% Views de Vídeo/Áudio'),
-        (6,'50% Views de Vídeo/Áudio'),
-        (7,'75% Views de Vídeo/Áudio'),
-        (8,'100% Views de Vídeo/Áudio'),
-        (9,'Custo'),
+        ('1','Impressões'),
+        ('2','Cliques'),
+        ('3','Alcance'),
+        ('4','Views de Vídeo/Áudio'),
+        ('5','25% Views de Vídeo/Áudio'),
+        ('6','50% Views de Vídeo/Áudio'),
+        ('7','75% Views de Vídeo/Áudio'),
+        ('8','100% Views de Vídeo/Áudio'),
+        ('9','Custo'),
     ]
 
-    id_name = models.IntegerField(max_length=2, choices=DETAIL_METRICS)
-    # company = models.ForeignKey(Company, on_delete=models.CASCADE)
+    id_name = models.CharField(max_length=2, choices=DETAIL_METRICS)
+    company = models.ForeignKey(Company, on_delete=models.CASCADE)
     class Meta:
         verbose_name = 'Métrica'
 
@@ -67,7 +67,16 @@ class CustomMetrics(models.Model):
         return '{}'.format(self.DETAIL_METRICS[self.id_name][1])
 
 class CustomQuery(models.Model):
-    # adiciona somente queries que possuem a coluna campaign_id
+    # tipo de query: campanha | crm
+    
+    _CAMPANHA = '1'
+    _CRM = '2'
+    _DEALS = '3'
+    DETAIL_QUERY_TYPE = [
+        ('1','Campanha'),
+        ('2','CRM'),
+        # ('3','CRM DEALS')
+    ]
     def validate_db_name(value):
         try:
             cnx=mysql.connector.connect(
@@ -87,6 +96,7 @@ class CustomQuery(models.Model):
         else:
             cnx.close()
 
+    query_type = models.CharField(max_length=2, choices=DETAIL_QUERY_TYPE, default='1')
     db_name = models.CharField(max_length=100, validators =[validate_db_name], 
                     help_text="Nome do Schema no banco MySql. Exemplo: client_data") #exemplo client_data
     company_source = models.CharField(max_length=100, 
@@ -119,13 +129,17 @@ class CustomQuery(models.Model):
                     if not result :
                         raise ValidationError("Verifique Company source e Datasource. Erro ao adicionar a busca, tabela não existe.")
                     
-                    # verifica se possui a coluna campaign_id
-                    stmt = "SHOW COLUMNS FROM {} WHERE Field IN {}".format(ret, ('campaign_id', 'Campaign ID'))
+                    # valida a query pelo tipo
+                    stmt = {
+                        self._CAMPANHA: "SHOW COLUMNS FROM {} WHERE Field IN {}".format(ret, ('campaign_id', 'Campaign ID')),
+                        self._CRM: "SHOW COLUMNS FROM {} WHERE Field IN {}".format(ret, ('active', 'sku')),
+                    }.get(self.query_type)
+                    
                     cursor.execute(stmt)
                     result = cursor.fetchall()
                     if not result:
                     # if ['campaign_id', 'Campaign ID'] not in result.keys():
-                        raise ValidationError("Erro ao adicionar a busca. Tabela do MySQL não contém 'Campaign ID'.")
+                        raise ValidationError(f"Erro ao adicionar a busca. Tabela do MySQL não contém '{dict(self.DETAIL_QUERY_TYPE)[self.query_type]}'.")
                     cursor.close()
         except mysql.connector.errors.ProgrammingError as error:
             raise ValidationError(error)
