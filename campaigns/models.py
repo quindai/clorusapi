@@ -3,7 +3,6 @@ from company.models import CustomQuery
 # Create your models here.
 
 class Campaign(models.Model):
-    pass
     GOAL_SELECT = [
         ('1','Tráfego'),
         ('2','Reconhecimento de marca'),
