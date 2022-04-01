@@ -8,11 +8,12 @@ class CustomQueryInline(admin.StackedInline):
 
 class CustomMetricsInline(admin.StackedInline):
     model = CustomMetrics
-    extra = 1
+    extra = 0
+    min_num = 2
 
 class CompanyAdmin(admin.ModelAdmin):
     fieldsets = [
-        ('Dados da Empresa', {'fields': ('cnpj','name','logo')}),
+        ('Dados da Empresa', {'fields': ('cnpj','name','logo','funil')}),
     ]
     inlines = [CustomMetricsInline, CustomQueryInline]
 

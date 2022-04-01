@@ -9,9 +9,15 @@ from django.utils.translation import gettext_lazy as _
 
 class Company(models.Model):
     # selecao de funil
+    DETAIL_FUNIL = [
+        ('1','V'),
+        ('2','Y'),
+    ]
+
     cnpj = models.CharField(max_length=14, db_index=True)
     name = models.CharField(max_length=200, verbose_name="Nome da Empresa")
     logo = models.CharField(max_length=10)
+    funil = models.CharField(max_length=2, choices=DETAIL_FUNIL, default='1')
 
     def __str__(self):
         return self.name
@@ -32,7 +38,9 @@ class CustomMetrics(models.Model):
         ('8','100% Views de Vídeo/Áudio'),
         ('9','Custo'),
     ]
+    DETAIL_STEP= [tuple([x,x]) for x in range(1,5)]
 
+    step = models.CharField(max_length=2, choices=DETAIL_STEP, default='1', verbose_name="Etapa")
     id_name = models.CharField(max_length=2, choices=DETAIL_METRICS)
     company = models.ForeignKey(Company, on_delete=models.CASCADE)
     class Meta:
