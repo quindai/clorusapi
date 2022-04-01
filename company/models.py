@@ -38,7 +38,7 @@ class CustomMetrics(models.Model):
         ('8','100% Views de Vídeo/Áudio'),
         ('9','Custo'),
     ]
-    DETAIL_STEP= [tuple([x,x]) for x in range(1,5)]
+    DETAIL_STEP = [tuple([str(x),x]) for x in range(1,5)]
 
     step = models.CharField(max_length=2, choices=DETAIL_STEP, default='1', verbose_name="Etapa")
     id_name = models.CharField(max_length=2, choices=DETAIL_METRICS, verbose_name="Escolha a Métrica")
@@ -46,33 +46,33 @@ class CustomMetrics(models.Model):
     class Meta:
         verbose_name = 'Métrica'
 
-    def get_metric_value(self, rows):
-        pass
+    # def get_metric_value(self, rows):
+    #     pass
 
-    def query(self):
-        with CustomQuery.objects.get(company=self.company) as customquery:
-            try:
-                cnx=mysql.connector.connect(
-                    user=config('MYSQL_DB_USER'),
-                    password=config('MYSQL_DB_PASS'),
-                    host=config('MYSQL_DB_HOST'),
-                    database=customquery.db_name) 
-                stmt = "SELECT * FROM "+ \
-                    '_'.join([customquery.company_source, customquery.datasource])
+    # def query(self):
+    #     with CustomQuery.objects.get(company=self.company) as customquery:
+    #         try:
+    #             cnx=mysql.connector.connect(
+    #                 user=config('MYSQL_DB_USER'),
+    #                 password=config('MYSQL_DB_PASS'),
+    #                 host=config('MYSQL_DB_HOST'),
+    #                 database=customquery.db_name) 
+    #             stmt = "SELECT * FROM "+ \
+    #                 '_'.join([customquery.company_source, customquery.datasource])
                     
-                with cnx.cursor(buffered=True, dictionary=True) as cursor:  
-                    cursor.execute(stmt)
-                    rows = cursor.fetchall()
-                    cursor.close()
-            except Exception:
-                pass
-            else:
-                return self.get_metric_value(rows)
-            finally:
-                cnx.close()
+    #             with cnx.cursor(buffered=True, dictionary=True) as cursor:  
+    #                 cursor.execute(stmt)
+    #                 rows = cursor.fetchall()
+    #                 cursor.close()
+    #         except Exception:
+    #             pass
+    #         else:
+    #             return self.get_metric_value(rows)
+    #         finally:
+    #             cnx.close()
 
     def __str__(self):
-        return '{}'.format(self.DETAIL_METRICS[self.id_name][1])
+        return '{}'.format(dict(self.DETAIL_METRICS)[self.id_name])
 
 class CustomQuery(models.Model):
     # tipo de query: campanha | crm
