@@ -15,7 +15,7 @@ class ComercialAPIView(generics.GenericAPIView,
                         mixins.ListModelMixin):
     serializer_class = ComercialSerializer
     queryset = Comercial.objects.all()
-    # permission_classes = [permissions.IsAuthenticated, BasicPermission]
+    permission_classes = [permissions.IsAuthenticated, BasicPermission]
 
     def get(self, request, *args, **kwargs):
         return self.list(request, *args, **kwargs)
@@ -24,7 +24,7 @@ class ComercialAPIView(generics.GenericAPIView,
         return self.create(request, *args, **kwargs)
 
 class ComercialDetailsView(APIView, LimitOffsetPagination):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, BasicPermission]
     def get_object(self, user):
         try:
             return CustomQuery.objects.filter(query_type='2', company=APIUser.objects.get(user=user).active_company)

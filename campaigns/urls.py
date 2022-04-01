@@ -1,7 +1,7 @@
 from django.urls import path
-from .views import CampaignView
+from .views import CampaignAssignView, CampaignView
 
 urlpatterns = [
-    path('', CampaignView.as_view(), name='campaign'),    
-
+    path('items/', CampaignView.as_view(), name='campaign'),    
+    path('', CampaignAssignView.as_view(), name='campaign_save'),
 ]

@@ -1,7 +1,9 @@
 from django.shortcuts import render
+from campaigns.models import Campaign
+from campaigns.serializers import CampaignSerializer
 from clorusapi.permissions.basic import BasicPermission
 from rest_framework.views import APIView
-from rest_framework import permissions, status
+from rest_framework import permissions, status, mixins, generics
 from rest_framework.response import Response
 from rest_framework.pagination import LimitOffsetPagination
 from company.models import Company, CustomQuery
@@ -9,7 +11,20 @@ from accounts.models.apiuser import APIUser
 import json
 # Create your views here.
 
-class CampaignView(APIView, LimitOffsetPagination):
+class CampaignAssignView(generics.GenericAPIView,
+                        mixins.CreateModelMixin,
+                        mixins.ListModelMixin):
+    serializer_class = CampaignSerializer
+    queryset = Campaign.objects.all()
+    permission_classes = (permissions.IsAuthenticated, BasicPermission)
+
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)
+
+class CampaignView(APIView, LimitOffsetPagination, mixins.CreateModelMixin):
     permission_classes = (permissions.IsAuthenticated, BasicPermission)
     
     def get_object(self, user):
@@ -47,3 +62,5 @@ class CampaignView(APIView, LimitOffsetPagination):
             return Response({'error':str(e)}, status=status.HTTP_404_NOT_FOUND)
         else:
             return self.get_paginated_response(response)
+
+    

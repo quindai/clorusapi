@@ -41,7 +41,7 @@ class CustomMetrics(models.Model):
     DETAIL_STEP= [tuple([x,x]) for x in range(1,5)]
 
     step = models.CharField(max_length=2, choices=DETAIL_STEP, default='1', verbose_name="Etapa")
-    id_name = models.CharField(max_length=2, choices=DETAIL_METRICS)
+    id_name = models.CharField(max_length=2, choices=DETAIL_METRICS, verbose_name="Escolha a Métrica")
     company = models.ForeignKey(Company, on_delete=models.CASCADE)
     class Meta:
         verbose_name = 'Métrica'
