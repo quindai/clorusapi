@@ -2,7 +2,7 @@ from django.contrib import admin
 
 from company.models import Company, CustomQuery, CustomMetrics
 
-class CustomQueryInline(admin.StackedInline):
+class CustomQueryInline(admin.StackedInline):  
     model = CustomQuery
     extra = 1
 
