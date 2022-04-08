@@ -18,3 +18,16 @@ class ComercialSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comercial
         fields = '__all__'
+
+    def create(request, *args, **kwargs):
+        source = request.data
+        goal = source.pop('goal')
+        new_goal = GoalPlanner.objects.create()
+        for p in goal:
+            products = Product(**p['product'])
+            products.save()
+            new_goal.product.add(products)
+        comercial = Comercial(**source)
+        comercial.goal = new_goal
+        comercial.save()
+        return comercial

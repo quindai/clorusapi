@@ -16,8 +16,8 @@ class Product(models.Model):
 
 #3 pegar dados com model Company
 class GoalPlanner(models.Model):
-    general_goal = models.IntegerField(verbose_name="Meta")
-    product = models.ForeignKey(Product, default=1, on_delete=models.CASCADE, verbose_name="Produto")
+    # general_goal = models.IntegerField(verbose_name="Meta")
+    product = models.ManyToManyField(Product, default=1, verbose_name="Produto")
     class Meta:
         verbose_name = 'Meta'
 
@@ -56,13 +56,13 @@ class Comercial(models.Model):
         ('3','Semestral'),
         ('4','Anual')
     ]
-    DETAIL_VISUALIZATION = [
-        ('1', 'Quantitativa'),
-        ('2', 'Monetária')
-    ]
     DETAIL_SEGMENTATION = [
         ('1', 'Segmentada'),
         ('2', 'Não Segmentada')
+    ]
+    DETAIL_VISUALIZATION = [
+        ('1', 'Quantitativa'),
+        ('2', 'Monetária')
     ]
 
     # visualization = models.CharField(max_length=2, choices=DETAIL_VISUALIZATION,
