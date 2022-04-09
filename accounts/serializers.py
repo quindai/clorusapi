@@ -104,7 +104,8 @@ class RequestPasswordResetEmailSerializer(serializers.Serializer):
                 token= PasswordResetTokenGenerator().make_token(user)
                 # current_site = get_current_site(
                     # request=attrs['data'].get('request')).domain
-                current_site = 'localhost:8000'
+                current_site = self.request.META['HTTP_REFERER']
+                # 'localhost:8000'
 
                 relative_link = reverse('reset_password_confirm', kwargs={'uidb64': uidb64, 'token':token})
                 abs_url = f'http://{current_site}{relative_link}'

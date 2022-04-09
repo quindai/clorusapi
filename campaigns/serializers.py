@@ -10,7 +10,13 @@ class CampaignSerializer(serializers.ModelSerializer):
 
 
 class CampaignOptimizationSerializer(serializers.ModelSerializer):
-    # campaign = CampaignSerializer()
+    # campaign = serializers.IntegerField()
+    class Meta:
+        model = Optimization
+        fields = '__all__'
+
+class CampaignOptimizationGETSerializer(serializers.ModelSerializer):
+    campaign_id = serializers.IntegerField()
     class Meta:
         model = Optimization
         fields = '__all__'

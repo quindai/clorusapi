@@ -3,10 +3,11 @@ from rest_framework.views import APIView
 from rest_framework import permissions, status, mixins, generics
 from rest_framework.response import Response
 from rest_framework.pagination import LimitOffsetPagination
+from rest_framework.exceptions import NotFound
 
 from accounts.models.apiuser import APIUser
 from campaigns.models import Campaign, Optimization
-from campaigns.serializers import CampaignOptimizationSerializer, CampaignSerializer
+from campaigns.serializers import CampaignOptimizationGETSerializer, CampaignOptimizationSerializer, CampaignSerializer
 from company.models import CustomQuery
 from clorusapi.permissions.basic import BasicPermission
 import re
@@ -73,14 +74,25 @@ class CampaignView(APIView, LimitOffsetPagination, mixins.CreateModelMixin):
     
 
 class CampaignOptimizationView(generics.GenericAPIView,
-                        mixins.CreateModelMixin,
-                        mixins.ListModelMixin):
+                        mixins.CreateModelMixin):
     serializer_class = CampaignOptimizationSerializer
     queryset = Optimization.objects.all()
     permission_classes = (permissions.IsAuthenticated, BasicPermission)
 
-    def get(self, request, *args, **kwargs):
-        return self.list(request, *args, **kwargs)
-
     def post(self, request, *args, **kwargs):
         return self.create(request, *args, **kwargs)
+
+class CampaignOptimizationGETView(generics.GenericAPIView,
+                        mixins.ListModelMixin):
+    serializer_class = CampaignOptimizationGETSerializer
+    queryset = Optimization.objects.all()
+    permission_classes = (permissions.IsAuthenticated, BasicPermission)
+
+    def get_queryset(self):
+        try:                        
+            return self.queryset.filter(campaign=self.kwargs['campaign_id'])
+        except Optimization.DoesNotExist:
+            raise NotFound({'error':'Não encontramos otimizações para essa campanha.'})
+
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
