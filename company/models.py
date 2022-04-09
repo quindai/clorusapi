@@ -140,10 +140,14 @@ class CustomQuery(models.Model):
                         raise ValidationError("Verifique Company source e Datasource. Erro ao adicionar a busca, tabela não existe.")
                     
                     # valida a query pelo tipo
+                    # buscar as colunas aqui
                     stmt = {
                         self._CAMPANHA: "SHOW COLUMNS FROM {} WHERE Field IN {}".format(ret, ('campaign_id', 'Campaign ID')),
                         self._CRM: "SHOW COLUMNS FROM {} WHERE Field IN {}".format(ret, ('active', 'sku')),
                     }.get(self.query_type)
+
+                    if len(self.data_columns.strip())>0:
+                        stmt = "SHOW COLUMNS FROM {} WHERE Field IN {}".format(ret, tuple(self.data_columns.strip().split(',')))
                     
                     cursor.execute(stmt)
                     result = cursor.fetchall()
@@ -166,7 +170,10 @@ class CustomQuery(models.Model):
                 database=self.db_name) 
             stmt = "SELECT * FROM "+ \
                 '_'.join([self.company_source,self.datasource])
-                 
+            if len(self.data_columns)>0:
+                stmt = f"SELECT {self.data_columns} FROM "+ \
+                '_'.join([self.company_source,self.datasource]) 
+            breakpoint()
             with cnx.cursor(buffered=True, dictionary=True) as cursor:  
                 cursor.execute(stmt)
                 rows = cursor.fetchall()

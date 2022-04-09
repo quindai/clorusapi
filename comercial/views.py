@@ -15,7 +15,7 @@ class ComercialAPIView(generics.GenericAPIView,
                         mixins.ListModelMixin):
     serializer_class = ComercialSerializer
     queryset = Comercial.objects.all()
-    # permission_classes = [permissions.IsAuthenticated, BasicPermission]
+    permission_classes = [permissions.IsAuthenticated, BasicPermission]
 
     def get(self, request, *args, **kwargs):
         return self.list(request, *args, **kwargs)

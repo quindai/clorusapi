@@ -13,6 +13,7 @@ class Product(models.Model):
 
     class Meta:
         verbose_name = 'Produto'
+        ordering = ['id_crm']
 
 #3 pegar dados com model Company
 class GoalPlanner(models.Model):
@@ -80,10 +81,10 @@ class Comercial(models.Model):
 
     objects = ComercialManager()
 
+    class Meta:
+        ordering = ['id']
+
     #moskit
-    # meta em quantidade para cada produto
-    # visualization podem ser as duas opcoes
-    # produto pegar valor atual dos produtos
     # todo cliente tem CRM
 @receiver(post_save, sender=Comercial)
 def pre_save_handler(sender, **kwargs):
