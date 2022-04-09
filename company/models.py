@@ -170,7 +170,8 @@ class CustomQuery(models.Model):
                 database=self.db_name) 
             stmt = "SELECT * FROM "+ \
                 '_'.join([self.company_source,self.datasource])
-            if len(self.data_columns)>0:
+            # if len(self.data_columns)>0:
+            if self.data_columns:
                 stmt = f"SELECT {self.data_columns} FROM "+ \
                 '_'.join([self.company_source,self.datasource]) 
 
