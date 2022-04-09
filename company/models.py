@@ -16,7 +16,7 @@ class Company(models.Model):
 
     cnpj = models.CharField(max_length=14, db_index=True)
     name = models.CharField(max_length=200, verbose_name="Nome da Empresa")
-    logo = models.CharField(max_length=10)
+    logo = models.TextField()
     funil = models.CharField(max_length=2, choices=DETAIL_FUNIL, default='1')
 
     def __str__(self):
@@ -173,7 +173,7 @@ class CustomQuery(models.Model):
             if len(self.data_columns)>0:
                 stmt = f"SELECT {self.data_columns} FROM "+ \
                 '_'.join([self.company_source,self.datasource]) 
-            breakpoint()
+
             with cnx.cursor(buffered=True, dictionary=True) as cursor:  
                 cursor.execute(stmt)
                 rows = cursor.fetchall()
