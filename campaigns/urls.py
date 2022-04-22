@@ -1,9 +1,10 @@
 from django.urls import path
-from .views import CampaignAssignView, CampaignView, CampaignOptimizationView, CampaignOptimizationGETView
+from .views import CampaignPostView, CampaignView, CampaignRawDataView, CampaignOptimizationView, CampaignOptimizationGETView
 
 urlpatterns = [
-    path('', CampaignAssignView.as_view(), name='campaign_save'),
-    path('raw_data/', CampaignView.as_view(), name='campaign'), 
+    path('', CampaignPostView.as_view(), name='campaign_save'),
+    path('list/', CampaignView.as_view(), name='campaign'),
+    path('raw_data/', CampaignRawDataView.as_view(), name='campaign_raw_data'), 
     path('optimization/', CampaignOptimizationView.as_view(), name='campaign_opt'), 
     path('optimization/<campaign_id>/', CampaignOptimizationGETView.as_view(), name='campaign_opt_save'), 
 ]

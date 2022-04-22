@@ -3,8 +3,9 @@ from rest_framework import (
     mixins, generics, permissions, status)
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from company.models import Company
-from company.serializers import CompanySerializer, CompanyInternSerializer
+from rest_framework.pagination import LimitOffsetPagination
+from company.models import Company, CustomMetrics
+from company.serializers import CompanySerializer, CompanyInternSerializer, CustomMetricsSerializer
 from rest_framework.renderers import JSONRenderer
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
@@ -12,6 +13,25 @@ from clorusapi.permissions.basic import BasicPermission
 from rest_framework.decorators import api_view, permission_classes
 from accounts.models.apiuser import APIUser
 from django.shortcuts import redirect
+
+class CompanyMetricsView(generics.GenericAPIView):
+    permission_classes = (permissions.IsAuthenticated,)
+    serializer_class = CustomMetricsSerializer
+
+    def get_object(self, user):
+        try:
+            return CustomMetrics.objects.filter(company=APIUser.objects.get(user=user).active_company)
+        except CustomMetrics.DoesNotExist:
+            return Response({'error':'Empresa não tem métrica cadastrada.'},
+                        status=status.HTTP_400_BAD_REQUEST)
+    
+    def get(self, request, *args, **kwargs):
+        metrics = self.get_object(request.user)
+        serializer = self.serializer(data=metrics[0])
+        serializer.is_valid(raise_exception=True)
+        # response = self.paginate_queryset(retorno, request, view=self)
+        return self.get_paginated_response(serializer.data)
+        # super().get(request, *args, **kwargs)
 
 class CompanyAPIView(generics.GenericAPIView,
                     mixins.RetrieveModelMixin,

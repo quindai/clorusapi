@@ -1,6 +1,6 @@
 from accounts.models.apiuser import APIUser
 from rest_framework import serializers
-from .models import Company
+from .models import Company, CustomMetrics
 from accounts.serializers import UserAPISerializer
 
 class CompanySerializer(serializers.ModelSerializer):
@@ -25,12 +25,17 @@ class CompanySerializer(serializers.ModelSerializer):
     #     fields = '__all__'
     #     read_only_fields = ('cnpj','name','logo')
 
+class CustomMetricsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomMetrics
+        fields = '__all__'
+
 class CompanyInternSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(default=None)
     class Meta:
         model = Company
         fields = '__all__'
-        read_only_fields = ('cnpj','name','logo')
+        read_only_fields = ('cnpj','name','logo', 'funil')
         extra_kwargs = {
             'id': {'write_only': True},
         }

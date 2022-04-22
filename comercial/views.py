@@ -7,8 +7,8 @@ from django.db.models import Q
 from clorusapi.permissions.basic import BasicPermission
 from accounts.models.apiuser import APIUser
 from company.models import CustomQuery, Company
-from .models import Comercial
-from .serializers import ComercialSerializer
+from .models import Comercial, GoalPlanner
+from .serializers import ComercialProductUpdateSerializer, ComercialSerializer
 
 class ComercialAPIView(generics.GenericAPIView,
                         mixins.CreateModelMixin,
@@ -21,7 +21,28 @@ class ComercialAPIView(generics.GenericAPIView,
         return self.list(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
+        breakpoint()
         return self.create(request, *args, **kwargs)
+
+class ComercialProductUpdateView(generics.GenericAPIView):
+    serializer_class = ComercialProductUpdateSerializer
+    # queryset = GoalPlanner.objects.all()
+    
+    def get_object(self, id):
+        try:
+            return GoalPlanner.objects.get(comercial=Comercial.objects.get(id=id))
+        except GoalPlanner.DoesNotExist:
+            raise NotFound({'error':'Não conseguimos encontrar essa meta para atualizar.'})
+
+
+    def put(self, request, *args, **kwargs):
+        # goal_planner = self.get_object(kwargs['id'])
+        # breakpoint()
+        serializer = ComercialProductUpdateSerializer( data=request.data, context=kwargs)
+        if serializer.is_valid():
+            serializer.save()
+        return Response(serializer.data)
+        # self.update(self,request, *args, **kwargs)
 
 class ComercialDetailsView(APIView, LimitOffsetPagination):
     permission_classes = [permissions.IsAuthenticated, BasicPermission]

@@ -153,7 +153,7 @@ class CustomQuery(models.Model):
                     result = cursor.fetchall()
                     if not result:
                     # if ['campaign_id', 'Campaign ID'] not in result.keys():
-                        raise ValidationError(f"Erro ao adicionar a busca. Tabela do MySQL não contém '{dict(self.DETAIL_QUERY_TYPE)[self.query_type]}'.")
+                        raise ValidationError(f"Erro ao adicionar a busca. Precisa preenchar as colunas de '{dict(self.DETAIL_QUERY_TYPE)[self.query_type]}'.")
                     cursor.close()
         except mysql.connector.errors.ProgrammingError as error:
             raise ValidationError(error)

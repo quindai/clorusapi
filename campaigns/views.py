@@ -7,14 +7,15 @@ from rest_framework.exceptions import NotFound
 
 from accounts.models.apiuser import APIUser
 from campaigns.models import Campaign, Optimization
-from campaigns.serializers import CampaignOptimizationGETSerializer, CampaignOptimizationSerializer, CampaignSerializer
+from campaigns.serializers import (
+    CampaignOptimizationGETSerializer, CampaignOptimizationSerializer, 
+    CampaignPostSerializer, CampaignSerializer)
 from company.models import CustomQuery
 from clorusapi.permissions.basic import BasicPermission
 import re
 # Create your views here.
 
-class CampaignAssignView(generics.GenericAPIView,
-                        mixins.CreateModelMixin,
+class CampaignView(generics.GenericAPIView,
                         mixins.ListModelMixin):
     serializer_class = CampaignSerializer
     queryset = Campaign.objects.all()
@@ -23,10 +24,16 @@ class CampaignAssignView(generics.GenericAPIView,
     def get(self, request, *args, **kwargs):
         return self.list(request, *args, **kwargs)
 
+class CampaignPostView(generics.GenericAPIView,
+                        mixins.CreateModelMixin):
+    serializer_class = CampaignPostSerializer
+    queryset = Campaign.objects.all()
+    permission_classes = (permissions.IsAuthenticated, BasicPermission)
+
     def post(self, request, *args, **kwargs):
         return self.create(request, *args, **kwargs)
 
-class CampaignView(APIView, LimitOffsetPagination, mixins.CreateModelMixin):
+class CampaignRawDataView(APIView, LimitOffsetPagination):
     permission_classes = (permissions.IsAuthenticated, BasicPermission)
     
     def get_object(self, user):
@@ -42,32 +49,35 @@ class CampaignView(APIView, LimitOffsetPagination, mixins.CreateModelMixin):
         try:
             for current in custom_query:
                 query_returned = current.query()
-                if len(current.data_columns)>0:
+                if current.data_columns and len(current.data_columns.strip())>0:
+                    campaign_id = current.data_columns.split(',')[0].strip()
                     campanhas.extend(list(map(lambda dict: {
-                            **dict
+                            'campaign_id':re.findall(r'#\d+',dict[campaign_id])[0],
+                            **dict,
                         }, query_returned))
                     )
-                else:
-                    if 'campaign_id' in query_returned[0].keys():
-                        campanhas.extend( list(map(lambda dict: {
-                            # 'campaign_id':re.findall(r'#\d+',dict['campaign_id']),
-                            'campaign_id':re.findall(r'#\d+',dict['campaign_name'])[0],
-                            'campaign_name':dict['campaign_name']}, query_returned))
-                        )
-                    elif 'Campaign ID' in query_returned[0].keys():
-                        campanhas.extend( list(map(lambda dict: {
-                            # 'campaign_id':dict['Campaign ID'],
-                            'campaign_id':re.findall(r'#\d+',dict['Campaign'])[0],
-                            'campaign_name':dict['Campaign']}, query_returned))
-                        )
-                    else:
-                        campanhas.extend( list(map(lambda dict: {
-                            'campaign_id':'',
-                            'campaign_name':dict['Campaign']}, query_returned))
-                        )
+                else: return Response({'error': "Preencha o campo Data Columns no Admin."}, status=status.HTTP_404_NOT_FOUND)
+                # else:
+                #     if 'campaign_id' in query_returned[0].keys():
+                #         campanhas.extend( list(map(lambda dict: {
+                #             # 'campaign_id':re.findall(r'#\d+',dict['campaign_id']),
+                #             'campaign_id':re.findall(r'#\d+',dict['campaign_name'])[0],
+                #             'campaign_name':dict['campaign_name']}, query_returned))
+                #         )
+                #     elif 'Campaign ID' in query_returned[0].keys():
+                #         campanhas.extend( list(map(lambda dict: {
+                #             # 'campaign_id':dict['Campaign ID'],
+                #             'campaign_id':re.findall(r'#\d+',dict['Campaign'])[0],
+                #             'campaign_name':dict['Campaign']}, query_returned))
+                #         )
+                #     else:
+                #         campanhas.extend( list(map(lambda dict: {
+                #             'campaign_id':'',
+                #             'campaign_name':dict['Campaign']}, query_returned))
+                #         )
             response = self.paginate_queryset(campanhas, request, view=self)
         except Exception as e:
-            return Response({'error':str(e)}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'error':str(e), 'detail':'Verifique com o admin. Coluna do MySQL com clorus_id inexistente.'}, status=status.HTTP_404_NOT_FOUND)
         else:
             return self.get_paginated_response(response)
 

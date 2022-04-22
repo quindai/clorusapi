@@ -7,7 +7,7 @@ import decimal #for decimal field
 class Product(models.Model):
     id_crm = models.CharField(max_length=50)
     name = models.CharField(max_length=255, verbose_name="Nome do Produto")
-    quantity = models.IntegerField(default=1, verbose_name="Quantidade")
+    quantity = models.IntegerField(verbose_name="Quantidade")
     price = models.DecimalField(decimal_places=2, max_digits=8)
     date_created = models.DateTimeField(auto_now_add=True)
 
@@ -21,6 +21,7 @@ class GoalPlanner(models.Model):
     product = models.ManyToManyField(Product, default=1, verbose_name="Produto")
     class Meta:
         verbose_name = 'Meta'
+        ordering = ['id']
 
     
 class ComercialManager(models.Manager):
