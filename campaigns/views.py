@@ -77,7 +77,7 @@ class CampaignRawDataView(APIView, LimitOffsetPagination):
                 #         )
             response = self.paginate_queryset(campanhas, request, view=self)
         except Exception as e:
-            return Response({'error':str(e), 'detail':'Verifique com o admin. Coluna do MySQL com clorus_id inexistente.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'error':str(e), 'detail':'Verifique com o admin. Coluna do MySQL inexistente.'}, status=status.HTTP_404_NOT_FOUND)
         else:
             return self.get_paginated_response(response)
 

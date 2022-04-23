@@ -1,10 +1,9 @@
-from tabnanny import verbose
-from django.db import models
 from decouple import config
-import mysql.connector
-from mysql.connector import errorcode
+from django.db import models, DatabaseError
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
+from mysql.connector import errorcode
+import mysql.connector
 
 
 class Company(models.Model):
@@ -171,16 +170,20 @@ class CustomQuery(models.Model):
             stmt = "SELECT * FROM "+ \
                 '_'.join([self.company_source,self.datasource])
             # if len(self.data_columns)>0:
+            data_columns = [t.strip() for t in tuple(self.data_columns.split(',')) if t]
             if self.data_columns:
-                stmt = f"SELECT {self.data_columns} FROM "+ \
-                '_'.join([self.company_source,self.datasource]) 
-
+                stmt = "SELECT {} FROM {}".format( 
+                    ','.join(data_columns), 
+                    '_'.join([self.company_source,self.datasource])
+                )
             with cnx.cursor(buffered=True, dictionary=True) as cursor:  
                 cursor.execute(stmt)
                 rows = cursor.fetchall()
                 cursor.close()
-        except Exception:
-            pass
+        except Exception as e:
+            raise DatabaseError(
+                    _('Ocorreu o erro %(e)s.'),
+                params={'value': e},)
         else:
             return rows
         finally:
