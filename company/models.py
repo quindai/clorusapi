@@ -180,6 +180,8 @@ class CustomQuery(models.Model):
                 cursor.execute(stmt)
                 rows = cursor.fetchall()
                 cursor.close()
+        except mysql.connector.errors.ProgrammingError as error:
+            raise ValidationError(error)
         except Exception as e:
             raise DatabaseError(
                     _('Ocorreu o erro %(e)s.'),

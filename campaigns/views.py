@@ -50,9 +50,9 @@ class CampaignRawDataView(APIView, LimitOffsetPagination):
             for current in custom_query:
                 query_returned = current.query()
                 if current.data_columns and len(current.data_columns.strip())>0:
-                    campaign_id = current.data_columns.split(',')[0].strip()
+                    clorus_id = current.data_columns.split(',')[0].strip()
                     campanhas.extend(list(map(lambda dict: {
-                            'campaign_id':re.findall(r'#\d+',dict[campaign_id])[0],
+                            'clorus_id':re.findall(r'#\d+',dict[clorus_id])[0],
                             **dict,
                         }, query_returned))
                     )
