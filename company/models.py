@@ -160,7 +160,7 @@ class CustomQuery(models.Model):
             cnx.close()
         super(CustomQuery, self).clean(*args, **kwargs)
 
-    def query(self):
+    def query(self, group_by=False, group_column='id_clorus'):
         try:
             cnx=mysql.connector.connect(
                 user=config('MYSQL_DB_USER'),
@@ -172,10 +172,17 @@ class CustomQuery(models.Model):
             # if len(self.data_columns)>0:
             data_columns = [t.strip() for t in tuple(self.data_columns.split(',')) if t]
             if self.data_columns:
-                stmt = "SELECT {} FROM {}".format( 
-                    ','.join(data_columns), 
-                    '_'.join([self.company_source,self.datasource])
-                )
+                if group_by:
+                    stmt = "SELECT {} FROM {} GROUP BY {}".format( 
+                        ','.join(data_columns), 
+                        '_'.join([self.company_source,self.datasource]),
+                        group_column
+                    )
+                else:
+                    stmt = "SELECT {} FROM {}".format( 
+                        ','.join(data_columns), 
+                        '_'.join([self.company_source,self.datasource])
+                    )
             with cnx.cursor(buffered=True, dictionary=True) as cursor:  
                 cursor.execute(stmt)
                 rows = cursor.fetchall()

@@ -48,12 +48,13 @@ class CampaignRawDataView(APIView, LimitOffsetPagination):
         campanhas = []
         try:
             for current in custom_query:
-                query_returned = current.query()
+                query_returned = current.query(group_by=True)
                 if current.data_columns and len(current.data_columns.strip())>0:
                     clorus_id = current.data_columns.split(',')[0].strip()
                     campanhas.extend(list(map(lambda dict: {
                             'clorus_id':re.findall(r'#\d+',dict[clorus_id])[0],
-                            **dict,
+                            'campaign_name': dict[clorus_id].split(re.findall(r'#\d+',dict[clorus_id])[0])[1].strip(),
+                            # **dict,
                         }, query_returned))
                     )
                 else: return Response({'error': "Preencha o campo Data Columns no Admin."}, status=status.HTTP_404_NOT_FOUND)
