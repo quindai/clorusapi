@@ -7,11 +7,15 @@ from comercial.serializers import ComercialSerializer
 class CampaignSerializer(serializers.ModelSerializer):
     # comercial = ComercialSerializer()
     status = serializers.CharField()
-    company = CompanySerializer()
+    # company = CompanySerializer()
     comercial = ComercialSerializer()
     class Meta:
         model = Campaign
         fields = '__all__'
+
+    def validate(self, attrs):
+        breakpoint()
+        return super().validate(attrs)
 
 class CampaignPostSerializer(serializers.ModelSerializer):
     last_change = serializers.DateTimeField(read_only=True)

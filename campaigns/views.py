@@ -15,14 +15,51 @@ from clorusapi.permissions.basic import BasicPermission
 import re
 # Create your views here.
 
-class CampaignView(generics.GenericAPIView,
-                        mixins.ListModelMixin):
-    serializer_class = CampaignSerializer
-    queryset = Campaign.objects.all()
-    permission_classes = (permissions.IsAuthenticated, BasicPermission)
+class CampaignView(APIView, LimitOffsetPagination):
+    # serializer_class = CampaignSerializer
+    # queryset = Campaign.objects.all()
+    permission_classes = (permissions.IsAuthenticated, )
+
+    def get_object(self, user):
+        try:
+            return Campaign.objects.meu_teste('vcvc',user)
+            # return Campaign.objects.filter(custom_query__company=APIUser.objects.get(user=user).active_company)
+        except Campaign.DoesNotExist:
+            return Response({'error':'Não campanhas cadastrada.'},
+                        status=status.HTTP_404_NOT_FOUND)
+
+    def get_status(self, query):
+        # busca no mysql
+        return
 
     def get(self, request, *args, **kwargs):
-        return self.list(request, *args, **kwargs)
+        campaigns = self.get_object(request.user)
+
+        # outro = {k: campaigns[0].__dict__[k] for k in campaigns[0].__dict__.keys() & {'id', 'name', 'image'}}
+        get_return = []
+        get_return.extend([
+            {k: campaign.__dict__.get(k, None) for k in ('id', 'clorus_id', 'name', 'image', 'goal_description', 'goal_budget', 'comercial_id', 'budget', 'status')}
+            for campaign in campaigns    
+        ])
+        
+        # get_return.extend(list(map(lambda campaign:{
+            # 'status': 'sss',
+            # {k: campaign.__dict__.get(k, None) for k in ('id', 'clorus_id', 'name', 'image', 'goal_description', 'goal_budget', 'comercial_id', 'budget, status')},
+            # 'status': campaign.__dict__['id'],
+        # }, campaigns))
+        # )
+        # breakpoint() 
+        # ********** Mudar para APIView
+        # serializer = CampaignSerializer(data=request.data)
+        # serializer.is_valid(raise_exception=True)
+        # return self.list(request, *args, **kwargs)
+        try:
+            response = self.paginate_queryset(get_return, request, view=self)
+        except Exception as e:
+            return Response({'error':str(e), 'detail':'Verifique com o admin.'}, 
+                    status=status.HTTP_404_NOT_FOUND)
+        else:
+            return self.get_paginated_response(response)
 
 class CampaignPostView(generics.GenericAPIView,
                         mixins.CreateModelMixin):
@@ -54,6 +91,7 @@ class CampaignRawDataView(APIView, LimitOffsetPagination):
                     campanhas.extend(list(map(lambda dict: {
                             'clorus_id':re.findall(r'#\d+',dict[clorus_id])[0],
                             'campaign_name': dict[clorus_id].split(re.findall(r'#\d+',dict[clorus_id])[0])[1].strip(),
+                            'custom_query': current.pk,
                             # **dict,
                         }, query_returned))
                     )
@@ -78,7 +116,8 @@ class CampaignRawDataView(APIView, LimitOffsetPagination):
                 #         )
             response = self.paginate_queryset(campanhas, request, view=self)
         except Exception as e:
-            return Response({'error':str(e), 'detail':'Verifique com o admin. Coluna do MySQL inexistente.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'error':str(e), 'detail':'Verifique com o admin.'}, 
+                    status=status.HTTP_404_NOT_FOUND)
         else:
             return self.get_paginated_response(response)
 
