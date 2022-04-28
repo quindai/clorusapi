@@ -17,42 +17,24 @@ import re
 
 class CampaignView(APIView, LimitOffsetPagination):
     # serializer_class = CampaignSerializer
-    # queryset = Campaign.objects.all()
     permission_classes = (permissions.IsAuthenticated, )
 
     def get_object(self, user):
         try:
-            return Campaign.objects.meu_teste('vcvc',user)
+            return Campaign.objects.get_queryset_with_status(user)
             # return Campaign.objects.filter(custom_query__company=APIUser.objects.get(user=user).active_company)
         except Campaign.DoesNotExist:
             return Response({'error':'Não campanhas cadastrada.'},
                         status=status.HTTP_404_NOT_FOUND)
 
-    def get_status(self, query):
-        # busca no mysql
-        return
-
     def get(self, request, *args, **kwargs):
         campaigns = self.get_object(request.user)
-
-        # outro = {k: campaigns[0].__dict__[k] for k in campaigns[0].__dict__.keys() & {'id', 'name', 'image'}}
         get_return = []
         get_return.extend([
             {k: campaign.__dict__.get(k, None) for k in ('id', 'clorus_id', 'name', 'image', 'goal_description', 'goal_budget', 'comercial_id', 'budget', 'status')}
             for campaign in campaigns    
         ])
         
-        # get_return.extend(list(map(lambda campaign:{
-            # 'status': 'sss',
-            # {k: campaign.__dict__.get(k, None) for k in ('id', 'clorus_id', 'name', 'image', 'goal_description', 'goal_budget', 'comercial_id', 'budget, status')},
-            # 'status': campaign.__dict__['id'],
-        # }, campaigns))
-        # )
-        # breakpoint() 
-        # ********** Mudar para APIView
-        # serializer = CampaignSerializer(data=request.data)
-        # serializer.is_valid(raise_exception=True)
-        # return self.list(request, *args, **kwargs)
         try:
             response = self.paginate_queryset(get_return, request, view=self)
         except Exception as e:

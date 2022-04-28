@@ -13,9 +13,6 @@ class CampaignSerializer(serializers.ModelSerializer):
         model = Campaign
         fields = '__all__'
 
-    def validate(self, attrs):
-        breakpoint()
-        return super().validate(attrs)
 
 class CampaignPostSerializer(serializers.ModelSerializer):
     last_change = serializers.DateTimeField(read_only=True)
