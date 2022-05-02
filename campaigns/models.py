@@ -49,29 +49,44 @@ class CampaignManager(models.Manager):
             cnx.close()
 
     def get_metrics_sum(self, **kwargs):
-        # TODO colocar isso numa superclasse de customquery
-        # Especializar em classes diferentes todas as métricas calculadas de forma diferente
-        metrics_summary = []
-        breakpoint()
+        metrics_summary = {}
         for q in kwargs['queries']:
             cnx=mysql.connector.connect(
                 user=config('MYSQL_DB_USER'),
                 password=config('MYSQL_DB_PASS'),
                 host=config('MYSQL_DB_HOST'),
                 database=q.db_name)
+            # breakpoint()
             for m in kwargs['metrics']:
-                stmt = "SELECT SUM({}) as {} FROM {} WHERE id_clorus like '{}'".format(
-                    m.get_db_table(), 
-                    dict(m.DETAIL_METRICS_DB)[m.id_name][0],
-                    '_'.join([q.company_source, q.datasource]),
-                    kwargs['id_clorus']
-                )
-                with cnx.cursor(buffered=True, dictionary=True) as cursor:  
-                    cursor.execute(stmt)
-                    metrics_summary.append(cursor.fetchone())
-                    cursor.close()
+                for col in m.get_db_table(): 
+                    stmt = "SHOW COLUMNS from {} LIKE '{}'".format(
+                        '_'.join([q.company_source, q.datasource]),
+                        col
+                    )
+                    # if column exists
+                    with cnx.cursor(buffered=True) as cursor:  
+                        cursor.execute(stmt)
+                        row = cursor.fetchone()
+                        cursor.close()
+                    if row:
+                        stmt = "SELECT  CAST(SUM({}) AS SIGNED) as {} FROM {} WHERE id_clorus like '{}'".format(
+                            col, 
+                            dict(m.DETAIL_METRICS)[m.id_name],
+                            '_'.join([q.company_source, q.datasource]),
+                            kwargs['id_clorus']
+                        )
+                        with cnx.cursor(buffered=True, dictionary=True) as cursor:  
+                            cursor.execute(stmt)
+                            row = cursor.fetchone()
+                            # breakpoint()
+                            if col in metrics_summary.keys():
+                                metrics_summary[col] = metrics_summary[col]+row[col]
+                            else:
+                                metrics_summary.update(row)
+                            cursor.close()
             cnx.close()
-        return metrics_summary
+        # breakpoint()
+        return str(metrics_summary)
 
     def get_queryset_with_status(self, *args, **kwargs):
         retorno = self.filter(
@@ -79,16 +94,14 @@ class CampaignManager(models.Manager):
             APIUser.objects.get(user=args[0]).active_company
             )
         tempcq = CustomQuery.objects.get(pk=retorno[0].custom_query_id)
-        # TODO pegar todos custom_query e buscar as métricas em todos para somar
         
+        # pega todos custom_query e busca as métricas em todos para somar
         queries = retorno[0].custom_query.company.company_rel.filter(query_type='1')
         metrics = retorno[0].custom_query.company.custommetrics_set.all()
-        # breakpoint()
-        retorno.annotate(
-            metrics_summary = models.Value(self.get_metrics_sum(metrics=metrics, queries=queries, id_clorus=retorno[0].clorus_id))
-        )
         
         return retorno.annotate(
+            metrics_summary = models.Value(
+                self.get_metrics_sum(metrics=metrics, queries=queries, id_clorus=retorno[0].clorus_id)),
             status = models.Value(self.get_recent_date(
                 tempcq, retorno[0].clorus_id
             ))

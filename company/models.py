@@ -71,7 +71,7 @@ class CustomMetrics(models.Model):
         #             kwargs['id_clorus']),
         #         }.get(self.id_name)
         
-        return dict(self.DETAIL_METRICS_DB)[self.id_name][0]
+        return dict(self.DETAIL_METRICS_DB)[self.id_name]
     # def get_metric_value(self, rows):
     #     pass
 

@@ -29,10 +29,11 @@ class CampaignView(APIView, LimitOffsetPagination):
 
     def get(self, request, *args, **kwargs):
         campaigns = self.get_object(request.user)
+        # breakpoint()
         get_return = []
         get_return.extend([
-            {k: campaign.__dict__.get(k, None) for k in ('id', 'clorus_id', 'name', 'image', 'goal_description', 'goal_budget', 'comercial_id', 'budget', 'status')}
-            for campaign in campaigns    
+            {k: campaign.__dict__.get(k, None) for k in ('id', 'clorus_id', 'name', 'image', 'goal_description', 'goal_budget', 'comercial_id', 'budget', 'status', 'metrics_summary')}
+            for campaign in campaigns 
         ])
         
         try:
