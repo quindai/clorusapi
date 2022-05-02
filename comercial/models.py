@@ -85,8 +85,6 @@ class Comercial(models.Model):
     class Meta:
         ordering = ['id']
 
-    #moskit
-    # todo cliente tem CRM
 @receiver(post_save, sender=Comercial)
 def pre_save_handler(sender, **kwargs):
 #     """after saving Comercial, change _begin_date"""

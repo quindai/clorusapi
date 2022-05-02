@@ -14,6 +14,10 @@ import mysql.connector
 from company.models import Company, CustomQuery
 from accounts.models.apiuser import APIUser
 
+# TODO 
+# reverse search em custom_query->company->custom_metric 
+# SELECT SUM(impressions), id_clorus FROM test.sebraeal_programatica where id_clorus='#238470';
+
 class CampaignManager(models.Manager):
     def get_recent_date(self, *args):
         try:
@@ -44,12 +48,46 @@ class CampaignManager(models.Manager):
         finally:
             cnx.close()
 
+    def get_metrics_sum(self, **kwargs):
+        # TODO colocar isso numa superclasse de customquery
+        # Especializar em classes diferentes todas as métricas calculadas de forma diferente
+        metrics_summary = []
+        breakpoint()
+        for q in kwargs['queries']:
+            cnx=mysql.connector.connect(
+                user=config('MYSQL_DB_USER'),
+                password=config('MYSQL_DB_PASS'),
+                host=config('MYSQL_DB_HOST'),
+                database=q.db_name)
+            for m in kwargs['metrics']:
+                stmt = "SELECT SUM({}) as {} FROM {} WHERE id_clorus like '{}'".format(
+                    m.get_db_table(), 
+                    dict(m.DETAIL_METRICS_DB)[m.id_name][0],
+                    '_'.join([q.company_source, q.datasource]),
+                    kwargs['id_clorus']
+                )
+                with cnx.cursor(buffered=True, dictionary=True) as cursor:  
+                    cursor.execute(stmt)
+                    metrics_summary.append(cursor.fetchone())
+                    cursor.close()
+            cnx.close()
+        return metrics_summary
+
     def get_queryset_with_status(self, *args, **kwargs):
         retorno = self.filter(
             custom_query__company=
             APIUser.objects.get(user=args[0]).active_company
             )
         tempcq = CustomQuery.objects.get(pk=retorno[0].custom_query_id)
+        # TODO pegar todos custom_query e buscar as métricas em todos para somar
+        
+        queries = retorno[0].custom_query.company.company_rel.filter(query_type='1')
+        metrics = retorno[0].custom_query.company.custommetrics_set.all()
+        # breakpoint()
+        retorno.annotate(
+            metrics_summary = models.Value(self.get_metrics_sum(metrics=metrics, queries=queries, id_clorus=retorno[0].clorus_id))
+        )
+        
         return retorno.annotate(
             status = models.Value(self.get_recent_date(
                 tempcq, retorno[0].clorus_id
@@ -72,7 +110,7 @@ class Campaign(models.Model):
     goal_description = models.TextField(default='', verbose_name="Descrição do Objetivo")
     goal_budget = models.CharField(max_length=255, default='', verbose_name='Meta (Total proveniente de Meta Geral)')
     comercial = models.ForeignKey(Comercial, on_delete=models.CASCADE, default=1)
-    # company = models.ForeignKey(Company, on_delete=models.CASCADE, default=1)
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, default=1)
     custom_query = models.ForeignKey(CustomQuery, on_delete=models.CASCADE)
     budget = models.CharField(max_length=255, default='', verbose_name="Valor Investido")
     last_change = models.DateTimeField(blank=True, null=True)

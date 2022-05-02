@@ -25,6 +25,7 @@ class Company(models.Model):
         verbose_name = "Empresa"
         ordering = ['-name']
 
+
 class CustomMetrics(models.Model):
     DETAIL_METRICS = [
         ('1','Impressões'),
@@ -37,6 +38,17 @@ class CustomMetrics(models.Model):
         ('8','100% Views de Vídeo/Áudio'),
         ('9','Custo'),
     ]
+    DETAIL_METRICS_DB = [
+        ('1',['impressions']),
+        ('2',['clicks']),
+        ('3',['reach']),
+        ('4',['video_p25_watched_views', 'video_views']),
+        ('5',['video_p25_watched_views', 'video_quartile_p25_rate', 'Twentyfive_Percent_View']),
+        ('6',['video_p50_watched_views', 'video_quartile_p50_rate', 'Fifty_Percent_View']),
+        ('7',['video_p75_watched_views', 'video_quartile_p75_rate', 'Seventyfive_Percent_View']),
+        ('8',['video_p100_watched_views', 'video_quartile_p100_rate', 'Completed_view']),
+        ('9',['spend', 'Cost']),
+    ]
     DETAIL_STEP = [tuple([str(x),x]) for x in range(1,5)]
 
     step = models.CharField(max_length=2, choices=DETAIL_STEP, default='1', verbose_name="Etapa")
@@ -45,20 +57,35 @@ class CustomMetrics(models.Model):
     class Meta:
         verbose_name = 'Métrica'
 
+    def get_db_table(self, **kwargs):
+        # for q in kwargs['queries']:
+        #     cnx=mysql.connector.connect(
+        #         user=config('MYSQL_DB_USER'),
+        #         password=config('MYSQL_DB_PASS'),
+        #         host=config('MYSQL_DB_HOST'),
+        #         database=q.db_name)
+        #     stmt = {
+        #     '1': "SELECT COUNT({}) FROM {} WHERE id_clorus like '{}'".format(
+        #             m.get_db_table(), 
+        #             '_'.join([q.company_source, q.datasource]),
+        #             kwargs['id_clorus']),
+        #         }.get(self.id_name)
+        
+        return dict(self.DETAIL_METRICS_DB)[self.id_name][0]
     # def get_metric_value(self, rows):
     #     pass
 
     # def query(self):
     #     with CustomQuery.objects.get(company=self.company) as customquery:
-    #         try:
-    #             cnx=mysql.connector.connect(
-    #                 user=config('MYSQL_DB_USER'),
-    #                 password=config('MYSQL_DB_PASS'),
-    #                 host=config('MYSQL_DB_HOST'),
-    #                 database=customquery.db_name) 
-    #             stmt = "SELECT * FROM "+ \
-    #                 '_'.join([customquery.company_source, customquery.datasource])
-                    
+        # try:
+        #     cnx=mysql.connector.connect(
+        #         user=config('MYSQL_DB_USER'),
+        #         password=config('MYSQL_DB_PASS'),
+        #         host=config('MYSQL_DB_HOST'),
+        #         database='') 
+        #     stmt = "SELECT * FROM "+ \
+        #         '_'.join([customquery.company_source, customquery.datasource])
+                
     #             with cnx.cursor(buffered=True, dictionary=True) as cursor:  
     #                 cursor.execute(stmt)
     #                 rows = cursor.fetchall()
