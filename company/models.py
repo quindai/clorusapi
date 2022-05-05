@@ -27,7 +27,7 @@ class Company(models.Model):
 
 
 class CustomMetrics(models.Model):
-    DETAIL_METRICS = [
+    DETAIL_METRICS = [ # FUNIL
         ('1','Impressões'),
         ('2','Cliques'),
         ('3','Alcance'),
@@ -37,6 +37,7 @@ class CustomMetrics(models.Model):
         ('7','75% Views de Vídeo/Áudio'),
         ('8','100% Views de Vídeo/Áudio'),
         ('9','Custo'),
+        # LEADS
     ]
     DETAIL_METRICS_DB = [
         ('1',['impressions']),
@@ -55,7 +56,8 @@ class CustomMetrics(models.Model):
     id_name = models.CharField(max_length=2, choices=DETAIL_METRICS, verbose_name="Escolha a Métrica")
     company = models.ForeignKey(Company, on_delete=models.CASCADE)
     class Meta:
-        verbose_name = 'Métrica'
+        verbose_name = 'Métricas do Funil'
+        verbose_name_plural = 'Métricas do Funil'
 
     def get_db_table(self, **kwargs):
         # for q in kwargs['queries']:
@@ -196,9 +198,10 @@ class CustomQuery(models.Model):
                 database=self.db_name) 
             stmt = "SELECT * FROM "+ \
                 '_'.join([self.company_source,self.datasource])
+            
             # if len(self.data_columns)>0:
-            data_columns = [t.strip() for t in tuple(self.data_columns.split(',')) if t]
             if self.data_columns:
+                data_columns = [t.strip() for t in tuple(self.data_columns.split(',')) if t]
                 if group_by:
                     stmt = "SELECT {} FROM {} GROUP BY {}".format( 
                         ','.join(data_columns), 

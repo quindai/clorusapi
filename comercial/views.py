@@ -21,7 +21,6 @@ class ComercialAPIView(generics.GenericAPIView,
         return self.list(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
-        breakpoint()
         return self.create(request, *args, **kwargs)
 
 class ComercialProductUpdateView(generics.GenericAPIView):

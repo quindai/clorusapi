@@ -18,6 +18,44 @@ from accounts.models.apiuser import APIUser
 # reverse search em custom_query->company->custom_metric 
 # SELECT SUM(impressions), id_clorus FROM test.sebraeal_programatica where id_clorus='#238470';
 
+class MainMetrics(models.Model):
+    METRICS = [
+        ('1','Impressões'),
+        ('2','Cliques'),
+        ('3','Alcance'),
+        ('4','Views de Vídeo/Áudio'),
+        ('5','25% Views de Vídeo/Áudio'),
+        ('6','50% Views de Vídeo/Áudio'),
+        ('7','75% Views de Vídeo/Áudio'),
+        ('8','100% Views de Vídeo/Áudio'),
+        ('9','Custo'),
+        ('10','Conversões'),
+        ('11',['CTR - Taxa de Cliques']),
+    ]
+    METRICS_DB = [
+        ('1',['impressions']),
+        ('2',['clicks']),
+        ('3',['reach']),
+        ('4',['video_p25_watched_views', 'video_views']),
+        ('5',['video_p25_watched_views', 'video_quartile_p25_rate', 'Twentyfive_Percent_View']),
+        ('6',['video_p50_watched_views', 'video_quartile_p50_rate', 'Fifty_Percent_View']),
+        ('7',['video_p75_watched_views', 'video_quartile_p75_rate', 'Seventyfive_Percent_View']),
+        ('8',['video_p100_watched_views', 'video_quartile_p100_rate', 'Completed_view']),
+        ('9',['spend', 'Cost']),
+        ('10',['conversions']),
+        ('11',['ctr']),
+    ]
+    METRICS_API_KEY = [
+        'impressions',
+        'clicks',
+        'range',
+        'views_25',
+        'views_50',
+        'views_75',
+        'views_100',
+        'spend',
+    ]
+
 class CampaignManager(models.Manager):
     def get_recent_date(self, *args):
         try:
@@ -47,6 +85,13 @@ class CampaignManager(models.Manager):
             return retorno
         finally:
             cnx.close()
+
+    def get_calc_metric(self, metric):
+        # métricas calculadas
+        stmt = {
+            #CPC - Custo por Clique: f"select sum(cost)/NULLIF(SUM(clicks), 1) as CPC from test.sebraeal_facebookads;"
+        }.get(metric)
+        return ""
 
     def get_metrics_sum(self, **kwargs):
         metrics_summary = {}
@@ -84,6 +129,8 @@ class CampaignManager(models.Manager):
                             else:
                                 metrics_summary.update(row)
                             cursor.close()
+                    else: # métricas calculadas
+                        pass
             cnx.close()
         # breakpoint()
         return str(metrics_summary)
