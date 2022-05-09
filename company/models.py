@@ -37,6 +37,7 @@ class CustomMetrics(models.Model):
         ('7','75% Views de Vídeo/Áudio'),
         ('8','100% Views de Vídeo/Áudio'),
         ('9','Custo'),
+        ('10','Leads'),
         # LEADS
     ]
     DETAIL_METRICS_DB = [
@@ -49,6 +50,7 @@ class CustomMetrics(models.Model):
         ('7',['video_p75_watched_views', 'video_quartile_p75_rate', 'Seventyfive_Percent_View']),
         ('8',['video_p100_watched_views', 'video_quartile_p100_rate', 'Completed_view']),
         ('9',['spend', 'Cost']),
+        ('10',['conversions']),
     ]
     DETAIL_STEP = [tuple([str(x),x]) for x in range(1,5)]
 
@@ -58,47 +60,11 @@ class CustomMetrics(models.Model):
     class Meta:
         verbose_name = 'Métricas do Funil'
         verbose_name_plural = 'Métricas do Funil'
-
+    
+    @property
     def get_db_table(self, **kwargs):
-        # for q in kwargs['queries']:
-        #     cnx=mysql.connector.connect(
-        #         user=config('MYSQL_DB_USER'),
-        #         password=config('MYSQL_DB_PASS'),
-        #         host=config('MYSQL_DB_HOST'),
-        #         database=q.db_name)
-        #     stmt = {
-        #     '1': "SELECT COUNT({}) FROM {} WHERE id_clorus like '{}'".format(
-        #             m.get_db_table(), 
-        #             '_'.join([q.company_source, q.datasource]),
-        #             kwargs['id_clorus']),
-        #         }.get(self.id_name)
-        
         return dict(self.DETAIL_METRICS_DB)[self.id_name]
-    # def get_metric_value(self, rows):
-    #     pass
-
-    # def query(self):
-    #     with CustomQuery.objects.get(company=self.company) as customquery:
-        # try:
-        #     cnx=mysql.connector.connect(
-        #         user=config('MYSQL_DB_USER'),
-        #         password=config('MYSQL_DB_PASS'),
-        #         host=config('MYSQL_DB_HOST'),
-        #         database='') 
-        #     stmt = "SELECT * FROM "+ \
-        #         '_'.join([customquery.company_source, customquery.datasource])
-                
-    #             with cnx.cursor(buffered=True, dictionary=True) as cursor:  
-    #                 cursor.execute(stmt)
-    #                 rows = cursor.fetchall()
-    #                 cursor.close()
-    #         except Exception:
-    #             pass
-    #         else:
-    #             return self.get_metric_value(rows)
-    #         finally:
-    #             cnx.close()
-
+    
     def __str__(self):
         return '{}'.format(dict(self.DETAIL_METRICS)[self.id_name])
 

@@ -15,6 +15,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from campaigns.views import CalcMetricView
 # from rest_framework.routers import DefaultRouter
 
 # router = DefaultRouter()
@@ -45,6 +46,7 @@ urlpatterns = [
     path('company/', include('company.urls')),
     path('comercial/', include('comercial.urls')),
     path('campaign/', include('campaigns.urls')),
+    path('metrics/<clorus_id>/<metric_name>', CalcMetricView.as_view(), name='get_metric'),
     # path('company/<int:pk>/', UpdateCompanyAPIView.as_view(), name='update_company'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
     path('api.json/', schema_view.without_ui(cache_timeout=0), name='schema-swagger-ui'),

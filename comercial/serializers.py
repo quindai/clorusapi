@@ -55,7 +55,6 @@ class ComercialProductUpdateSerializer(serializers.ModelSerializer):
         # breakpoint()
         products = attrs.pop('product',[])
         try:
-            breakpoint()
             goal = GoalPlanner.objects.get(comercial=Comercial.objects.get(id=self.context.get('id','')))
             product_ids = [p['id'] for p in products]
             goal.products.exclude(pk__in=product_ids)

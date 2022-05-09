@@ -6,7 +6,7 @@ from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.exceptions import NotFound
 
 from accounts.models.apiuser import APIUser
-from campaigns.models import Campaign, Optimization
+from campaigns.models import Campaign, MainMetrics, Optimization
 from campaigns.serializers import (
     CampaignOptimizationGETSerializer, CampaignOptimizationSerializer, 
     CampaignPostSerializer, CampaignSerializer)
@@ -129,3 +129,33 @@ class CampaignOptimizationGETView(generics.GenericAPIView,
 
     def get(self, request, *args, **kwargs):
         return self.list(request, *args, **kwargs)
+
+
+class CalcMetricView(APIView, LimitOffsetPagination):
+    # Url na raiz do app
+    def get_object(self, user):
+        try:
+            return CustomQuery.objects.filter(query_type='1', company=APIUser.objects.get(user=user).active_company)
+        except CustomQuery.DoesNotExist:
+            return Response({'error':'Usuário não tem empresa ativa.'},
+                        status=status.HTTP_400_BAD_REQUEST)
+    def get(self, request, *args, **kwargs):
+        # breakpoint()
+        queries = self.get_object(request.user)
+        # Pode ser nome da métrica ou a palavra "all"
+        metric_name = kwargs.get('metric_name', '')
+        clorus_id = kwargs.get('clorus_id', '')
+        if metric_name:
+            calc = MainMetrics.calc_metric(metric_name, queries, clorus_id)
+            # breakpoint()
+        else:
+            return Response({'error':'Métrica inexistente.'}, 
+                    status=status.HTTP_404_NOT_FOUND)
+        
+        try:
+            response = self.paginate_queryset([calc], request, view=self)
+        except Exception as e:
+            return Response({'error':str(e), 'detail':'Verifique com o admin.'}, 
+                    status=status.HTTP_404_NOT_FOUND)
+        else:
+            return self.get_paginated_response(response)

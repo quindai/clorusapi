@@ -91,3 +91,13 @@ def pre_save_handler(sender, **kwargs):
     instance = kwargs.get('instance')
     Comercial.objects.filter(pk=instance.pk).update(_begin_date = instance.begin_date)
     
+# class ComercialHistory(models.Model):
+#     comercial = models.ForeignKey(Comercial)
+#     visualization_quant = models.BooleanField(verbose_name="Visualização Quantitativa")
+#     visualization_mon = models.BooleanField(verbose_name="Visualização Monetária")
+#     begin_date = models.DateField(db_index=True, verbose_name="Data de Início")
+#     periodicity = models.CharField(max_length=255, verbose_name="Seleção de Periodicidade")
+#     repeat_periodicity = models.BooleanField(verbose_name="Repetir Periodicidade")
+#     segmentation = models.CharField(max_length=2, choices=DETAIL_SEGMENTATION,
+#                     verbose_name="Segmentação", default='1')    
+#     goal = models.F
