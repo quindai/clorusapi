@@ -72,7 +72,8 @@ class MainMetrics():
         'views_50',
         'views_75',
         'views_100',
-        #'spend',
+        'spend',
+        'leads',
     ]
 
     def get_db_table(cls, **kwargs):
@@ -99,12 +100,12 @@ class MainMetrics():
         metrics_summary = {}
         if metric in cls.METRICS_DB_ANNOTATE:
             metrics = cls.calc_catering(metric)
-        elif metric not in [cls.METRICS_API_KEY, cls.METRICS_DB_ANNOTATE]:
+        elif metric not in [*cls.METRICS_API_KEY, *cls.METRICS_DB_ANNOTATE]:
             raise NotFound(
                 _(f'{metric} métrica não existe, ou não foi mapeada.')
             )
-        if not metrics:
-            metrics = cls.METRICS_API_KEY if metrics=='all' else [metrics]
+        else:
+            metrics = cls.METRICS_API_KEY if metric=='all' else [metric]
         # breakpoint()
         for q in queries:
             if not cnx:
