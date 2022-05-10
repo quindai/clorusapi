@@ -13,6 +13,7 @@ import mysql.connector
 
 from company.models import Company, CustomQuery
 from accounts.models.apiuser import APIUser
+from rest_framework.exceptions import NotFound
 
 # TODO 
 # reverse search em custom_query->company->custom_metric 
@@ -29,15 +30,17 @@ class MainMetrics():
         ('views_50','50% Views de Vídeo/Áudio'),
         ('views_75','75% Views de Vídeo/Áudio'),
         ('views_100','100% Views de Vídeo/Áudio'),
-        ('9','Custo'),
         ('10','Conversões'),
-        ('11','CTR - Taxa de Cliques'),
+        ('ctr','CTR - Taxa de Cliques'),
         ('cpv','CPV - Custo por View'),
         ('cpc','CPC - Custo por Clique'),
+        ('cpl','CPL - Custo por lead'),
         ('visits','Visitas'),
         ('deals','Vendas'),
         ('revenue','Receita'),
-
+        ('spend','Custo (Spend ou Investido)'),
+        ('leads','Leads'),
+        ('invested','Investimento / Investido'),
     ]
     METRICS_DB = [ # métricas de soma
         ('impressions',['impressions']),
@@ -48,17 +51,19 @@ class MainMetrics():
         ('views_50',['video_p50_watched_views', 'video_quartile_p50_rate', 'Fifty_Percent_View']),
         ('views_75',['video_p75_watched_views', 'video_quartile_p75_rate', 'Seventyfive_Percent_View']),
         ('views_100',['video_p100_watched_views', 'video_quartile_p100_rate', 'Completed_view']),
-        ('9',['spend', 'Cost']),
-        ('10',['conversions']),
+        ('spend',['spend', 'Cost']),
+        ('leads',['conversion']),
         # ('deals',['deals_id']),
         # ('revenue',['price']),
     ]
     # Métricas que dependem de outras métricas para serem calculadas
-    # METRICS_DB_ANNOTATE = [
-    #     ('ctr',['ctr']),
-    #     ('cpc',['cpc']),
-    #     ('visits',['visits']),
-    # ]
+    METRICS_DB_ANNOTATE = [
+        'ctr',
+        'cpc',
+        'cpv',
+        'cpl',
+        # 'visits',
+    ]
     METRICS_API_KEY = [
         'impressions',
         'clicks',
@@ -73,10 +78,33 @@ class MainMetrics():
     def get_db_table(cls, **kwargs):
         return dict(cls.METRICS_DB)[kwargs['metric']]
 
+    def calc_annotate(metric, human_metric, *args):
+        return {
+            'ctr': {human_metric: args[0]/args[1]},
+            'cpc': {human_metric: args[0]/args[1]},
+            'cpv': {human_metric: args[0]/args[1]},
+            'cpl': {human_metric: args[0]/args[1]},
+        }.get(metric)
+
+    def calc_catering(metric):
+        return {
+            'ctr': ['impressions','clicks'],
+            'cpc': ['spend','clicks'],
+            'cpv': ['spend','views'],
+            'cpl': ['spend','leads'],
+        }.get(metric)
+
     @classmethod
-    def calc_metric(cls, metrics, queries, clorus_id, cnx=None):
+    def calc_metric(cls, metric, queries, clorus_id, cnx=None):
         metrics_summary = {}
-        metrics = cls.METRICS_API_KEY if metrics=='all' else [metrics]
+        if metric in cls.METRICS_DB_ANNOTATE:
+            metrics = cls.calc_catering(metric)
+        elif metric not in [cls.METRICS_API_KEY, cls.METRICS_DB_ANNOTATE]:
+            raise NotFound(
+                _(f'{metric} métrica não existe, ou não foi mapeada.')
+            )
+        if not metrics:
+            metrics = cls.METRICS_API_KEY if metrics=='all' else [metrics]
         # breakpoint()
         for q in queries:
             if not cnx:
@@ -86,8 +114,8 @@ class MainMetrics():
                     host=config('MYSQL_DB_HOST'),
                     database=q.db_name)
             # breakpoint()
-            for metric in metrics:
-                for col in cls.get_db_table(cls, metric=metric):
+            for m in metrics:
+                for col in cls.get_db_table(cls, metric=m):
                     stmt = "SHOW COLUMNS FROM {} LIKE '{}'".format(
                         '_'.join([q.company_source, q.datasource]),
                         col
@@ -100,20 +128,28 @@ class MainMetrics():
                         if row:
                             stmt = "SELECT  CAST(SUM({}) AS SIGNED) as '{}' FROM {} WHERE id_clorus like '{}'".format(
                                 col, 
-                                dict(cls.METRICS)[metric],
+                                dict(cls.METRICS)[m],
                                 '_'.join([q.company_source, q.datasource]),
                                 clorus_id
                             )
                             with cnx.cursor(buffered=True, dictionary=True) as cursor:  
                                 cursor.execute(stmt)
                                 row = cursor.fetchone()
-                                col_name = dict(cls.METRICS)[metric]
+                                col_name = dict(cls.METRICS)[m]
                                 if col_name in metrics_summary.keys():
                                     metrics_summary[col_name] = metrics_summary[col_name]+row[col_name]
                                 else:
                                     metrics_summary.update(row)
                                 cursor.close()
         cnx.close()
+        if metric in cls.METRICS_DB_ANNOTATE:
+            # breakpoint()
+            return cls.calc_annotate(
+                metric,
+                dict(cls.METRICS)[metric],
+                metrics_summary[dict(cls.METRICS)[metrics[0]]], 
+                metrics_summary[dict(cls.METRICS)[metrics[1]]]
+                )
         return metrics_summary
 
 class CampaignManager(models.Manager):
