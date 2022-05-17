@@ -75,6 +75,9 @@ class MainMetrics():
         'spend',
         'leads',
     ]
+    METRICS_CRM = [
+        'revenue'
+    ]
 
     def get_db_table(cls, **kwargs):
         return dict(cls.METRICS_DB)[kwargs['metric']]
@@ -98,9 +101,10 @@ class MainMetrics():
     @classmethod
     def calc_metric(cls, metric, queries, clorus_id, cnx=None):
         metrics_summary = {}
+        
         if metric in cls.METRICS_DB_ANNOTATE:
             metrics = cls.calc_catering(metric)
-        elif metric not in [*cls.METRICS_API_KEY, *cls.METRICS_DB_ANNOTATE]:
+        elif metric not in [*cls.METRICS_API_KEY, *cls.METRICS_DB_ANNOTATE, 'all']:
             raise NotFound(
                 _(f'{metric} métrica não existe, ou não foi mapeada.')
             )

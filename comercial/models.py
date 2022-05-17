@@ -1,15 +1,21 @@
 from django.db import models
 from django.dispatch import receiver
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_save
 import datetime
+from simple_history.models import HistoricalRecords
 import decimal #for decimal field
 
 class Product(models.Model):
+    #
     id_crm = models.CharField(max_length=50)
     name = models.CharField(max_length=255, verbose_name="Nome do Produto")
+    #
     quantity = models.IntegerField(verbose_name="Quantidade")
+    #
     price = models.DecimalField(decimal_places=2, max_digits=8)
     date_created = models.DateTimeField(auto_now_add=True)
+    #goal = models.IntegerField(verbose_name="Meta") #
+    history = HistoricalRecords()
 
     class Meta:
         verbose_name = 'Produto'
@@ -17,8 +23,8 @@ class Product(models.Model):
 
 #3 pegar dados com model Company
 class GoalPlanner(models.Model):
-    # general_goal = models.IntegerField(verbose_name="Meta")
     product = models.ManyToManyField(Product, default=1, verbose_name="Produto")
+    history = HistoricalRecords()
     class Meta:
         verbose_name = 'Meta'
         ordering = ['id']
@@ -79,25 +85,42 @@ class Comercial(models.Model):
     segmentation = models.CharField(max_length=2, choices=DETAIL_SEGMENTATION,
                     verbose_name="Segmentação", default='1')    
     goal = models.ForeignKey(GoalPlanner, on_delete=models.CASCADE, verbose_name="Meta")
+    history = HistoricalRecords()
 
     objects = ComercialManager()
 
     class Meta:
         ordering = ['id']
 
-@receiver(post_save, sender=Comercial)
-def pre_save_handler(sender, **kwargs):
-#     """after saving Comercial, change _begin_date"""
-    instance = kwargs.get('instance')
-    Comercial.objects.filter(pk=instance.pk).update(_begin_date = instance.begin_date)
-    
+
+# @receiver(pre_save, sender=Comercial) # update
+# def pre_save_update(sender, instance, **kwargs):
+#     if not instance._state.adding:
+#         print('Update de comercial')
+
 # class ComercialHistory(models.Model):
-#     comercial = models.ForeignKey(Comercial)
+#     comercial = models.ForeignKey(Comercial, on_delete=models.CASCADE)
 #     visualization_quant = models.BooleanField(verbose_name="Visualização Quantitativa")
 #     visualization_mon = models.BooleanField(verbose_name="Visualização Monetária")
 #     begin_date = models.DateField(db_index=True, verbose_name="Data de Início")
 #     periodicity = models.CharField(max_length=255, verbose_name="Seleção de Periodicidade")
 #     repeat_periodicity = models.BooleanField(verbose_name="Repetir Periodicidade")
-#     segmentation = models.CharField(max_length=2, choices=DETAIL_SEGMENTATION,
+#     segmentation = models.CharField(max_length=2, choices=Comercial.DETAIL_SEGMENTATION,
 #                     verbose_name="Segmentação", default='1')    
-#     goal = models.F
+#     goal = models.ForeignKey(GoalPlanner, on_delete=models.CASCADE, verbose_name="Meta")
+#     expiration_date = models.DateField()
+#     status = models.BooleanField()
+#     user = models.CharField(max_length=255)
+#     modified_date = models.DateTimeField(auto_now_add=True)
+
+
+@receiver(post_save, sender=Comercial)
+def pre_save_handler(sender, **kwargs):
+#     """after saving Comercial, change _begin_date"""
+    # print('Salvando em comercial')
+    # breakpoint()
+    instance = kwargs.get('instance')
+    # abb = ComercialHistory(instance.__dict__)
+    Comercial.objects.filter(pk=instance.pk).update(_begin_date = instance.begin_date)
+    # if not instance._state.adding:
+    #     print('Update de comercial')

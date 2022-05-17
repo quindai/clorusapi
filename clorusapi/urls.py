@@ -16,6 +16,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from campaigns.views import CalcMetricView
+from decouple import config
 # from rest_framework.routers import DefaultRouter
 
 # router = DefaultRouter()
@@ -37,6 +38,7 @@ schema_view = get_schema_view(
    ),
    public=True,
    permission_classes=[permissions.AllowAny],
+   url='http://'+config('BASE_URL')
 )
 
 urlpatterns = [
