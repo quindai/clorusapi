@@ -330,9 +330,9 @@ class Campaign(models.Model):
                             verbose_name="Objetivo da Campanha", help_text='')
     goal_description = models.TextField(default='', verbose_name="Descrição do Objetivo")
     goal_budget = models.CharField(max_length=255, default='', verbose_name='Meta (Total proveniente de Meta Geral)')
-    comercial = models.ForeignKey(Comercial, on_delete=models.CASCADE, default=1)
-    company = models.ForeignKey(Company, on_delete=models.CASCADE, default=1)
-    custom_query = models.ForeignKey(CustomQuery, on_delete=models.CASCADE)
+    # comercial = models.ForeignKey(Comercial, on_delete=models.CASCADE, default=1)
+    # company = models.ForeignKey(Company, on_delete=models.CASCADE, default=1)
+    # custom_query = models.ForeignKey(CustomQuery, on_delete=models.CASCADE)
     budget = models.CharField(max_length=255, default='', verbose_name="Valor Investido")
     last_change = models.DateTimeField(blank=True, null=True)
 

@@ -2,21 +2,31 @@ from rest_framework import serializers
 from rest_framework.exceptions import ParseError, NotFound
 from .models import Comercial, GoalPlanner, Product
 
+class HistoricalRecordField(serializers.ListField):
+    child = serializers.DictField()
+
+    def to_representation(self, data):
+        return super().to_representation(data.values())
+
 class ProductSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(required=False)
+    history = HistoricalRecordField(read_only=True)
     class Meta:
         model = Product
-        fields =  ('id', 'id_crm', 'name', 'quantity', 'price')
+        fields =  ('id', 'id_crm', 'name', 'quantity', 'price', 'history')
 
 class GoalPlannerSerializer(serializers.ModelSerializer):
     product = ProductSerializer(many=True)
+    history = HistoricalRecordField(read_only=True)
     class Meta:
         model = GoalPlanner
         fields = '__all__'
 
+
 class ComercialSerializer(serializers.ModelSerializer):
     _begin_date = serializers.DateField(read_only=True)
     goal = GoalPlannerSerializer()
+    history = HistoricalRecordField(read_only=True)
     class Meta:
         model = Comercial
         fields = '__all__'

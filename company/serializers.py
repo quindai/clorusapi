@@ -5,6 +5,7 @@ from accounts.serializers import UserAPISerializer
 
 class CustomMetricsSerializer(serializers.ModelSerializer):
     # name=serializers.SerializerMethodField('get_db_table')
+    friendly_name=serializers.ReadOnlyField(source='__str__')
     name=serializers.ReadOnlyField(source='get_db_table')
     class Meta:
         model = CustomMetrics
