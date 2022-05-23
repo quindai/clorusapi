@@ -264,37 +264,37 @@ class CampaignManager(models.Manager):
                 database=q.db_name)
             
             for m in kwargs['metrics']:
-                print(m)
-                breakpoint()
+                # print(m)
+                # breakpoint()
                 if m == "Leads":
                     stmt = "SHOW COLUMNS from {} LIKE '{}'".format(
                         '_'.join([q.company_source, q.datasource]),
-                        'conversions'
+                        'conversion'
                     )
                     with cnx.cursor(buffered=True) as cursor:  
                         cursor.execute(stmt)
                         row = cursor.fetchone()
                         cursor.close()
                     if row:
-                         stmt = "SELECT SUM(conversions) as {} FROM {}".format(
+                         stmt = "SELECT SUM(conversion) as {} FROM {}".format(
                             m,
                             '_'.join([q.company_source, q.datasource]),
                          )
                 elif m == "Revenue":
-                    # breakpoint()
-                    stmt = "SHOW COLUMNS from {} LIKE '{}'".format(
-                        '_'.join([q.company_source, q.datasource]),
-                        'price',
-                    )
-                    with cnx.cursor(buffered=True) as cursor:  
-                        cursor.execute(stmt)
-                        row = cursor.fetchone()
-                        cursor.close()
-                    if row:
-                        stmt = "SELECT SUM(price) as {} FROM {}".format(
-                            m,
+                    if ('crm' in q.db_name) and (q.query_type=='2'):
+                        stmt = "SHOW COLUMNS from {} LIKE '{}'".format(
                             '_'.join([q.company_source, q.datasource]),
+                            'price',
                         )
+                        with cnx.cursor(buffered=True) as cursor:  
+                            cursor.execute(stmt)
+                            row = cursor.fetchone()
+                            cursor.close()
+                        if row:
+                            stmt = "SELECT SUM(price) as {} FROM {}".format(
+                                m,
+                                '_'.join([q.company_source, q.datasource]),
+                            )
                 elif m == "ROAS":
                     stmt = "SHOW COLUMNS from {} LIKE '{}'".format(
                         '_'.join([q.company_source, q.datasource]),
@@ -307,6 +307,7 @@ class CampaignManager(models.Manager):
                     )
 
                 if row:
+                    # breakpoint()
                     with cnx.cursor(buffered=True, dictionary=True) as cursor:  
                         cursor.execute(stmt)
                         row = cursor.fetchone()
@@ -314,9 +315,13 @@ class CampaignManager(models.Manager):
                         # breakpoint()
                         if m in metrics_summary.keys():
                             # metrics_summary[m] = decimal.Decimal(metrics_summary[m])+row[m]
-                            metrics_summary[m] = metrics_summary[m]+row[m]
+                            if isinstance(row[m], decimal.Decimal):
+                                metrics_summary[m] = decimal.Decimal(metrics_summary[m])+row[m]
+                            else:
+                                metrics_summary[m] = metrics_summary[m]+row[m]
                         else:
                             metrics_summary.update(row)
+                        row=None
                         cursor.close()
                     
             cnx.close()
@@ -334,10 +339,10 @@ class CampaignManager(models.Manager):
             raise NotFound('Não existe comercial para a empresa ativa.')
         tempcq = CustomQuery.objects.get(pk=retorno[0].custom_query_id)
         
-        # breakpoint()
         # pega todos custom_query e busca as métricas em todos para somar
-        queries = retorno[0].custom_query.company.company_rel.filter(query_type='1')
-        metrics = retorno[0].custom_query.company.custommetrics_set.all()
+        # queries = retorno[0].custom_query.company.company_rel.filter(query_type='1') # campanhas
+        queries = retorno[0].custom_query.company.company_rel.all()
+        # metrics = retorno[0].custom_query.company.custommetrics_set.all()
         
         return retorno.annotate(
             # metrics_summary = models.Value(
