@@ -52,7 +52,7 @@ class CustomMetrics(models.Model):
         ('9',['spend', 'Cost']),
         ('10',['conversions']),
     ]
-    DETAIL_STEP = [tuple([str(x),x]) for x in range(1,5)]
+    DETAIL_STEP = [tuple([str(x),x]) for x in range(1,7)]
 
     step = models.CharField(max_length=2, choices=DETAIL_STEP, default='1', verbose_name="Etapa")
     id_name = models.CharField(max_length=2, choices=DETAIL_METRICS, verbose_name="Escolha a Métrica")

@@ -3,23 +3,24 @@ from django.dispatch import receiver
 from django.db.models.signals import post_save, pre_save
 import datetime
 from simple_history.models import HistoricalRecords
-import decimal #for decimal field
+from clorusapi.utils.common import CommonProduct
+# import decimal #for decimal field
 
-class Product(models.Model):
+class Product(CommonProduct):
     #
-    id_crm = models.CharField(max_length=50)
-    name = models.CharField(max_length=255, verbose_name="Nome do Produto")
-    #
-    quantity = models.IntegerField(verbose_name="Quantidade")
-    #
-    price = models.DecimalField(decimal_places=2, max_digits=8)
-    date_created = models.DateTimeField(auto_now_add=True)
+    # id_crm = models.CharField(max_length=50)
+    # name = models.CharField(max_length=255, verbose_name="Nome do Produto")
+    # #
+    # quantity = models.IntegerField(verbose_name="Quantidade")
+    # #
+    # price = models.DecimalField(decimal_places=2, max_digits=8)
+    # date_created = models.DateTimeField(auto_now_add=True)
     #goal = models.IntegerField(verbose_name="Meta") #
     history = HistoricalRecords()
 
-    class Meta:
-        verbose_name = 'Produto'
-        ordering = ['id_crm']
+    # class Meta:
+        # verbose_name = 'Produto'
+        # ordering = ['id_crm']
 
 #3 pegar dados com model Company
 class GoalPlanner(models.Model):

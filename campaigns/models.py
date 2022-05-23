@@ -1,9 +1,8 @@
-import datetime
+import datetime, json
 from decouple import config
 from django.db import models
 from django.dispatch import receiver
 from django.db.models.signals import post_save
-from comercial.models import Comercial
 from django.utils import timezone
 
 from django.core.exceptions import ValidationError
@@ -11,9 +10,14 @@ from django.utils.translation import gettext_lazy as _
 from mysql.connector import errorcode
 import mysql.connector
 
+from comercial.models import Comercial
 from company.models import Company, CustomQuery
 from accounts.models.apiuser import APIUser
+from clorusapi.utils.common import CommonProduct
+
 from rest_framework.exceptions import NotFound
+import decimal #for decimal field
+from django.core.serializers.json import DjangoJSONEncoder
 
 # TODO 
 # reverse search em custom_query->company->custom_metric 
@@ -159,6 +163,7 @@ class MainMetrics():
 
 class CampaignManager(models.Manager):
     def get_recent_date(self, *args):
+        # breakpoint()
         try:
             cnx=mysql.connector.connect(
                 user=config('MYSQL_DB_USER'),
@@ -182,54 +187,56 @@ class CampaignManager(models.Manager):
             else: retorno = 'Ativa'
         except mysql.connector.errors.ProgrammingError as error:
             raise ValidationError(error)
+        except Exception as e:
+            raise ValidationError({'error':e, 'detail':f'Clorus ID {args[1]} não encontrado.'})
         else:
             return retorno
         finally:
             cnx.close()
 
 
-    def get_metrics_sum(self, **kwargs):
-        # TODO transferir para class de métricas
-        metrics_summary = {}
-        for q in kwargs['queries']:
-            cnx=mysql.connector.connect(
-                user=config('MYSQL_DB_USER'),
-                password=config('MYSQL_DB_PASS'),
-                host=config('MYSQL_DB_HOST'),
-                database=q.db_name)
-            # breakpoint()
-            for m in kwargs['metrics']:
-                for col in m.get_db_table(): 
-                    stmt = "SHOW COLUMNS from {} LIKE '{}'".format(
-                        '_'.join([q.company_source, q.datasource]),
-                        col
-                    )
-                    # if column exists
-                    with cnx.cursor(buffered=True) as cursor:  
-                        cursor.execute(stmt)
-                        row = cursor.fetchone()
-                        cursor.close()
-                    if row:
-                        stmt = "SELECT  CAST(SUM({}) AS SIGNED) as {} FROM {} WHERE id_clorus like '{}'".format(
-                            col, 
-                            dict(m.DETAIL_METRICS)[m.id_name],
-                            '_'.join([q.company_source, q.datasource]),
-                            kwargs['id_clorus']
-                        )
-                        with cnx.cursor(buffered=True, dictionary=True) as cursor:  
-                            cursor.execute(stmt)
-                            row = cursor.fetchone()
-                            # breakpoint()
-                            if col in metrics_summary.keys():
-                                metrics_summary[col] = metrics_summary[col]+row[col]
-                            else:
-                                metrics_summary.update(row)
-                            cursor.close()
-                    else: # métricas calculadas
-                        pass
-            cnx.close()
-        # breakpoint()
-        return str(metrics_summary)
+    # def get_metrics_sum(self, **kwargs):
+    #    # TODO transferir para class de métricas
+        # metrics_summary = {}
+        # for q in kwargs['queries']:
+        #     cnx=mysql.connector.connect(
+        #         user=config('MYSQL_DB_USER'),
+        #         password=config('MYSQL_DB_PASS'),
+        #         host=config('MYSQL_DB_HOST'),
+        #         database=q.db_name)
+        #     # breakpoint()
+        #     for m in kwargs['metrics']:
+        #         for col in m.get_db_table(): 
+        #             stmt = "SHOW COLUMNS from {} LIKE '{}'".format(
+        #                 '_'.join([q.company_source, q.datasource]),
+        #                 col
+        #             )
+        #             # if column exists
+        #             with cnx.cursor(buffered=True) as cursor:  
+        #                 cursor.execute(stmt)
+        #                 row = cursor.fetchone()
+        #                 cursor.close()
+        #             if row:
+        #                 stmt = "SELECT  CAST(SUM({}) AS SIGNED) as {} FROM {} WHERE id_clorus like '{}'".format(
+        #                     col, 
+        #                     dict(m.DETAIL_METRICS)[m.id_name],
+        #                     '_'.join([q.company_source, q.datasource]),
+        #                     kwargs['id_clorus']
+        #                 )
+        #                 with cnx.cursor(buffered=True, dictionary=True) as cursor:  
+        #                     cursor.execute(stmt)
+        #                     row = cursor.fetchone()
+        #                     # breakpoint()
+        #                     if col in metrics_summary.keys():
+        #                         metrics_summary[col] = metrics_summary[col]+row[col]
+        #                     else:
+        #                         metrics_summary.update(row)
+        #                     cursor.close()
+        #             else: # métricas calculadas
+        #                 pass
+        #     cnx.close()
+        # # breakpoint()
+        # return str(metrics_summary)
 
     def get_calc_metric(self, metric):
         # métricas calculadas
@@ -242,7 +249,12 @@ class CampaignManager(models.Manager):
         }.get(metric)
         
     def get_metrics_campaign(self, **kwargs):
-        metrics_summary = {}
+        # breakpoint()
+        metrics_summary = {
+            'Revenue': 0,
+            'ROAS': 0,
+            'CAC': 0
+        }
         for q in kwargs['queries']:
             cnx=mysql.connector.connect(
                 user=config('MYSQL_DB_USER'),
@@ -266,10 +278,20 @@ class CampaignManager(models.Manager):
                             '_'.join([q.company_source, q.datasource]),
                          )
                 elif m == "Revenue":
+                    # breakpoint()
                     stmt = "SHOW COLUMNS from {} LIKE '{}'".format(
                         '_'.join([q.company_source, q.datasource]),
-                        'conversions'
+                        'price',
                     )
+                    with cnx.cursor(buffered=True) as cursor:  
+                        cursor.execute(stmt)
+                        row = cursor.fetchone()
+                        cursor.close()
+                    if row:
+                        stmt = "SELECT SUM(price) as {} FROM {}".format(
+                            m,
+                            '_'.join([q.company_source, q.datasource]),
+                        )
                 elif m == "ROAS":
                     stmt = "SHOW COLUMNS from {} LIKE '{}'".format(
                         '_'.join([q.company_source, q.datasource]),
@@ -281,26 +303,34 @@ class CampaignManager(models.Manager):
                         'conversions'
                     )
 
-                with cnx.cursor(buffered=True, dictionary=True) as cursor:  
-                    cursor.execute(stmt)
-                    row = cursor.fetchone()
-                    # breakpoint()
-                    if m in metrics_summary.keys():
-                        metrics_summary[m] = metrics_summary[m]+row[m]
-                    else:
-                        metrics_summary.update(row)
-                    cursor.close()
+                if row:
+                    with cnx.cursor(buffered=True, dictionary=True) as cursor:  
+                        cursor.execute(stmt)
+                        row = cursor.fetchone()
+                        # print(m)
+                        # breakpoint()
+                        if m in metrics_summary.keys():
+                            metrics_summary[m] = decimal.Decimal(metrics_summary[m])+row[m]
+                        else:
+                            metrics_summary.update(row)
+                        cursor.close()
                     
             cnx.close()
-        return str(metrics_summary)
+        # breakpoint()
+        # return str(json.loads(json.dumps(metrics_summary, cls=DjangoJSONEncoder)))
+        return json.dumps(metrics_summary, cls=DjangoJSONEncoder)
 
     def get_queryset_with_status(self, *args, **kwargs):
+        # breakpoint()
         retorno = self.filter(
             custom_query__company=
             APIUser.objects.get(user=args[0]).active_company
             )
+        if not retorno:
+            raise NotFound('Não existe comercial para a empresa ativa.')
         tempcq = CustomQuery.objects.get(pk=retorno[0].custom_query_id)
         
+        # breakpoint()
         # pega todos custom_query e busca as métricas em todos para somar
         queries = retorno[0].custom_query.company.company_rel.filter(query_type='1')
         metrics = retorno[0].custom_query.company.custommetrics_set.all()
@@ -309,11 +339,17 @@ class CampaignManager(models.Manager):
             # metrics_summary = models.Value(
             #     self.get_metrics_sum(metrics=metrics, queries=queries, id_clorus=retorno[0].clorus_id)),
             metrics_summary = models.Value(
-                self.get_metrics_campaign(metrics=['Leads', 'Revenue','ROAS','CAC'], queries=queries, id_clorus=retorno[0].clorus_id)),
+                self.get_metrics_campaign(metrics=['Leads','Revenue','ROAS','CAC'], queries=queries, id_clorus=retorno[0].clorus_id)),
             status = models.Value(self.get_recent_date(
                 tempcq, retorno[0].clorus_id
             ))
         )
+
+class CampaignMetaDetail(CommonProduct):
+    # custom_query de produto, para rastreamento da origem desse item
+    custom_query = models.ForeignKey(CustomQuery, on_delete=models.CASCADE, verbose_name="Query de origem do item em raw_data")
+    class Meta:
+        verbose_name = 'Detalhes de Campanha'
 
 class Campaign(models.Model):
     GOAL_SELECT = [
@@ -329,10 +365,12 @@ class Campaign(models.Model):
     goal = models.CharField(max_length=2, default='', choices=GOAL_SELECT, 
                             verbose_name="Objetivo da Campanha", help_text='')
     goal_description = models.TextField(default='', verbose_name="Descrição do Objetivo")
-    goal_budget = models.CharField(max_length=255, default='', verbose_name='Meta (Total proveniente de Meta Geral)')
-    # comercial = models.ForeignKey(Comercial, on_delete=models.CASCADE, default=1)
+    goal_budget = models.CharField(max_length=255, default='', verbose_name='Meta monetária (Total proveniente de Meta Geral)')
+    goal_quantity = models.IntegerField(default=1, verbose_name='Soma da meta dos produtos')
+    campaign_details = models.ManyToManyField(CampaignMetaDetail)
+    custom_query = models.ForeignKey(CustomQuery, on_delete=models.CASCADE, verbose_name="Query da campanha em raw_data")
+    # comercial = models.ForeignKey(Comercial, on_delete=models.CASCADE, null=True)
     # company = models.ForeignKey(Company, on_delete=models.CASCADE, default=1)
-    # custom_query = models.ForeignKey(CustomQuery, on_delete=models.CASCADE)
     budget = models.CharField(max_length=255, default='', verbose_name="Valor Investido")
     last_change = models.DateTimeField(blank=True, null=True)
 
