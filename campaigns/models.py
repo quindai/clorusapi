@@ -365,7 +365,7 @@ class Campaign(models.Model):
     goal = models.CharField(max_length=2, default='', choices=GOAL_SELECT, 
                             verbose_name="Objetivo da Campanha", help_text='')
     goal_description = models.TextField(default='', verbose_name="Descrição do Objetivo")
-    goal_budget = models.CharField(max_length=255, default='', verbose_name='Meta monetária (Total proveniente de Meta Geral)')
+    goal_budget = models.CharField(max_length=255, default='', verbose_name='Soma de valor monetário (Total proveniente de Meta Geral)')
     goal_quantity = models.IntegerField(default=1, verbose_name='Soma da meta dos produtos')
     campaign_details = models.ManyToManyField(CampaignMetaDetail)
     custom_query = models.ForeignKey(CustomQuery, on_delete=models.CASCADE, verbose_name="Query da campanha em raw_data")
