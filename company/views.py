@@ -4,8 +4,8 @@ from rest_framework import (
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.pagination import LimitOffsetPagination
-from company.models import Company, CustomMetrics
-from company.serializers import CompanySerializer, CompanyInternSerializer, CustomMetricsSerializer
+from company.models import Company, CustomMetrics, CustomQuery
+from company.serializers import CompanySerializer, CompanyInternSerializer, CustomMetricsSerializer, CustomQuerySerializer
 from rest_framework.renderers import JSONRenderer
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
@@ -13,6 +13,25 @@ from clorusapi.permissions.basic import BasicPermission
 from rest_framework.decorators import api_view, permission_classes
 from accounts.models.apiuser import APIUser
 from django.shortcuts import redirect
+
+class CompanyActiveEmployeesAPIView(APIView, LimitOffsetPagination):
+    permission_classes = (permissions.IsAuthenticated,)
+    def get(self, request, *args, **kwargs):
+        queryset = list( APIUser.objects.get(
+            user=request.user).active_company.apiuser_set.all().values('user_type','name','user__username','user__email') )
+
+        response = self.paginate_queryset(queryset, request, view=self)
+        return self.get_paginated_response(response)
+
+class CustomQueryAPIView(generics.GenericAPIView,
+                            mixins.ListModelMixin):
+    permission_classes = (permissions.IsAuthenticated, )
+    serializer_class = CustomQuerySerializer
+    
+    def get(self, request, *args, **kwargs):
+        queries = CustomQuery.objects.filter(company=APIUser.objects.get(user=request.user).active_company)
+        serializer = self.get_serializer(queries, many=True)
+        return Response(serializer.data)
 
 class CompanyMetricsView(generics.GenericAPIView):
     permission_classes = (permissions.IsAuthenticated,)

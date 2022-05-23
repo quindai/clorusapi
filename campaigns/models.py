@@ -251,6 +251,7 @@ class CampaignManager(models.Manager):
     def get_metrics_campaign(self, **kwargs):
         # breakpoint()
         metrics_summary = {
+            'Leads': 0,
             'Revenue': 0,
             'ROAS': 0,
             'CAC': 0
@@ -263,6 +264,8 @@ class CampaignManager(models.Manager):
                 database=q.db_name)
             
             for m in kwargs['metrics']:
+                print(m)
+                breakpoint()
                 if m == "Leads":
                     stmt = "SHOW COLUMNS from {} LIKE '{}'".format(
                         '_'.join([q.company_source, q.datasource]),
@@ -310,7 +313,8 @@ class CampaignManager(models.Manager):
                         # print(m)
                         # breakpoint()
                         if m in metrics_summary.keys():
-                            metrics_summary[m] = decimal.Decimal(metrics_summary[m])+row[m]
+                            # metrics_summary[m] = decimal.Decimal(metrics_summary[m])+row[m]
+                            metrics_summary[m] = metrics_summary[m]+row[m]
                         else:
                             metrics_summary.update(row)
                         cursor.close()

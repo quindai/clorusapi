@@ -1,7 +1,12 @@
 from accounts.models.apiuser import APIUser
 from rest_framework import serializers
-from .models import Company, CustomMetrics
+from .models import Company, CustomMetrics, CustomQuery
 from accounts.serializers import UserAPISerializer
+
+class CustomQuerySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomQuery
+        fields = '__all__'
 
 class CustomMetricsSerializer(serializers.ModelSerializer):
     # name=serializers.SerializerMethodField('get_db_table')
