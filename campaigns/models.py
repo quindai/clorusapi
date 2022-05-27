@@ -81,6 +81,7 @@ class MainMetrics():
     ]
     METRICS_CRM = [
         'revenue'
+        'deals'
     ]
 
     def get_db_table(cls, **kwargs):
@@ -100,12 +101,13 @@ class MainMetrics():
             'cpc': ['spend','clicks'],
             'cpv': ['spend','views'],
             'cpl': ['spend','leads'],
+            'roas': ['revenue','spend'],
+            'cac': ['spend','deals']
         }.get(metric)
 
     @classmethod
     def calc_metric(cls, metric, queries, clorus_id, cnx=None):
         metrics_summary = {}
-        
         if metric in cls.METRICS_DB_ANNOTATE:
             metrics = cls.calc_catering(metric)
         elif metric not in [*cls.METRICS_API_KEY, *cls.METRICS_DB_ANNOTATE, 'all']:
@@ -116,12 +118,12 @@ class MainMetrics():
             metrics = cls.METRICS_API_KEY if metric=='all' else [metric]
         # breakpoint()
         for q in queries:
-            if not cnx:
-                cnx=mysql.connector.connect(
-                    user=config('MYSQL_DB_USER'),
-                    password=config('MYSQL_DB_PASS'),
-                    host=config('MYSQL_DB_HOST'),
-                    database=q.db_name)
+            # if not cnx:
+            cnx=mysql.connector.connect(
+                user=config('MYSQL_DB_USER'),
+                password=config('MYSQL_DB_PASS'),
+                host=config('MYSQL_DB_HOST'),
+                database=q.db_name)
             # breakpoint()
             for m in metrics:
                 for col in cls.get_db_table(cls, metric=m):
@@ -150,7 +152,7 @@ class MainMetrics():
                                 else:
                                     metrics_summary.update(row)
                                 cursor.close()
-        cnx.close()
+            cnx.close()
         if metric in cls.METRICS_DB_ANNOTATE:
             # breakpoint()
             return cls.calc_annotate(
@@ -296,6 +298,12 @@ class CampaignManager(models.Manager):
                                 '_'.join([q.company_source, q.datasource]),
                             )
                 elif m == "ROAS":
+                    # TODO otimizar código repetido
+                    # calc Revenue
+
+                    # calc spend
+                    spend = MainMetrics.calc_metric('spend', kwargs['queries'], kwargs['id_clorus'])
+                    breakpoint()
                     stmt = "SHOW COLUMNS from {} LIKE '{}'".format(
                         '_'.join([q.company_source, q.datasource]),
                         'conversions'
@@ -348,7 +356,7 @@ class CampaignManager(models.Manager):
             # metrics_summary = models.Value(
             #     self.get_metrics_sum(metrics=metrics, queries=queries, id_clorus=retorno[0].clorus_id)),
             metrics_summary = models.Value(
-                self.get_metrics_campaign(metrics=['Leads','Revenue','ROAS','CAC'], queries=queries, id_clorus=retorno[0].clorus_id)),
+                self.get_metrics_campaign(metrics=['Leads','Revenue','ROAS','CAC'], queries=queries, products=retorno[0].campaign_details.all(), id_clorus=retorno[0].clorus_id)),
             status = models.Value(self.get_recent_date(
                 tempcq, retorno[0].clorus_id
             ))
