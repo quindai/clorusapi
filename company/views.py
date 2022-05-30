@@ -18,7 +18,7 @@ class CompanyActiveEmployeesAPIView(APIView, LimitOffsetPagination):
     permission_classes = (permissions.IsAuthenticated,)
     def get(self, request, *args, **kwargs):
         queryset = list( APIUser.objects.get(
-            user=request.user).active_company.apiuser_set.all().values('user_type','name','user__username','user__email') )
+            user=request.user).active_company.apiuser_set.all().values('user_type','name','telephone','user__username','user__email') )
 
         response = self.paginate_queryset(queryset, request, view=self)
         return self.get_paginated_response(response)

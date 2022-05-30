@@ -5,7 +5,6 @@ from django.utils.translation import gettext_lazy as _
 from mysql.connector import errorcode
 import mysql.connector
 
-
 class Company(models.Model):
     # selecao de funil
     DETAIL_FUNIL = [
@@ -17,6 +16,7 @@ class Company(models.Model):
     name = models.CharField(max_length=200, verbose_name="Nome da Empresa")
     logo = models.TextField()
     funil = models.CharField(max_length=2, choices=DETAIL_FUNIL, default='1')
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.name

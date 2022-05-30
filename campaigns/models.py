@@ -258,83 +258,143 @@ class CampaignManager(models.Manager):
             'ROAS': 0,
             'CAC': 0
         }
-        for q in kwargs['queries']:
-            cnx=mysql.connector.connect(
-                user=config('MYSQL_DB_USER'),
-                password=config('MYSQL_DB_PASS'),
-                host=config('MYSQL_DB_HOST'),
-                database=q.db_name)
+        # for q in kwargs['queries']:
+        #     cnx=mysql.connector.connect(
+        #         user=config('MYSQL_DB_USER'),
+        #         password=config('MYSQL_DB_PASS'),
+        #         host=config('MYSQL_DB_HOST'),
+        #         database=q.db_name)
             
-            for m in kwargs['metrics']:
+            # for m in kwargs['metrics']:
                 # print(m)
                 # breakpoint()
-                if m == "Leads":
-                    stmt = "SHOW COLUMNS from {} LIKE '{}'".format(
+    # if m == "Leads":
+        # breakpoint()
+        for q in kwargs['queries']:
+            try:
+                if q.datasource == 'conversions':
+                    stmt = "SHOW COLUMNS FROM {} LIKE '{}'".format(
                         '_'.join([q.company_source, q.datasource]),
                         'conversion'
                     )
+                    cnx=mysql.connector.connect(
+                    user=config('MYSQL_DB_USER'),
+                    password=config('MYSQL_DB_PASS'),
+                    host=config('MYSQL_DB_HOST'),
+                    database=q.db_name)
                     with cnx.cursor(buffered=True) as cursor:  
                         cursor.execute(stmt)
                         row = cursor.fetchone()
                         cursor.close()
                     if row:
-                         stmt = "SELECT SUM(conversion) as {} FROM {}".format(
-                            m,
-                            '_'.join([q.company_source, q.datasource]),
-                         )
-                elif m == "Revenue":
-                    if ('crm' in q.db_name) and (q.query_type=='2'):
-                        stmt = "SHOW COLUMNS from {} LIKE '{}'".format(
-                            '_'.join([q.company_source, q.datasource]),
-                            'price',
+                        stmt = "SELECT CAST(SUM(conversion) as SIGNED) as {} FROM {} WHERE id_clorus LIKE '{}'".format(
+                        'Leads',
+                        '_'.join([q.company_source, q.datasource]),
+                        kwargs['id_clorus']
                         )
-                        with cnx.cursor(buffered=True) as cursor:  
+
+                        with cnx.cursor(buffered=True, dictionary=True) as cursor:  
                             cursor.execute(stmt)
                             row = cursor.fetchone()
-                            cursor.close()
-                        if row:
-                            stmt = "SELECT SUM(price) as {} FROM {}".format(
-                                m,
-                                '_'.join([q.company_source, q.datasource]),
-                            )
-                elif m == "ROAS":
-                    # TODO otimizar código repetido
-                    # calc Revenue
-
-                    # calc spend
-                    spend = MainMetrics.calc_metric('spend', kwargs['queries'], kwargs['id_clorus'])
-                    breakpoint()
-                    stmt = "SHOW COLUMNS from {} LIKE '{}'".format(
-                        '_'.join([q.company_source, q.datasource]),
-                        'conversions'
-                    )
-                elif m == "CAC":
-                    stmt = "SHOW COLUMNS from {} LIKE '{}'".format(
-                        '_'.join([q.company_source, q.datasource]),
-                        'conversions'
-                    )
-
-                if row:
+                    # print(m)
                     # breakpoint()
-                    with cnx.cursor(buffered=True, dictionary=True) as cursor:  
-                        cursor.execute(stmt)
-                        row = cursor.fetchone()
-                        # print(m)
-                        # breakpoint()
-                        if m in metrics_summary.keys():
+                    # if m in metrics_summary.keys():
+                        # metrics_summary[m] = decimal.Decimal(metrics_summary[m])+row[m]
+                        # if isinstance(row[m], decimal.Decimal):
                             # metrics_summary[m] = decimal.Decimal(metrics_summary[m])+row[m]
-                            if isinstance(row[m], decimal.Decimal):
-                                metrics_summary[m] = decimal.Decimal(metrics_summary[m])+row[m]
-                            else:
-                                metrics_summary[m] = metrics_summary[m]+row[m]
-                        else:
-                            metrics_summary.update(row)
+                        # else:
+                            metrics_summary['Leads'] = metrics_summary['Leads']+row['Leads']
+                    # else:
+                        # metrics_summary.update(row)
                         row=None
                         cursor.close()
-                    
-            cnx.close()
+                        cnx.close()
+            except mysql.connector.Error as err:
+                cnx.close()
+                if err.errno == errorcode.ER_BAD_FIELD_ERROR:
+                    raise NotFound(
+                    {'detail':f'{err}',
+                    'cause': _(f'Tabela {".".join([q.db_name, "_".join([q.company_source, q.datasource])])} no MySQL não possui a coluna especificada.')}
+                )
+
+    # elif m == "Revenue":
+        # continue
+        # if ('crm' in q.db_name) and (q.query_type=='2'):
+        #     stmt = "SHOW COLUMNS from {} LIKE '{}'".format(
+        #         '_'.join([q.company_source, q.datasource]),
+        #         'price',
+        #     )
+        #     with cnx.cursor(buffered=True) as cursor:  
+        #         cursor.execute(stmt)
+        #         row = cursor.fetchone()
+        #         cursor.close()
+        #     if row:
+        #         stmt = "SELECT SUM(price) as {} FROM {}".format(
+        #             m,
+        #             '_'.join([q.company_source, q.datasource]),
+        #         )
+    # elif m == "ROAS":
+        # TODO otimizar código repetido
+        # calc Revenue
+        
+        # calc spend
+        ptr = list(kwargs['products'].values_list('custom_query')[0])
+        
+        aa=CustomQuery.objects.filter(pk__in=ptr)
+        # spend = MainMetrics.calc_metric('spend', kwargs['queries'], kwargs['id_clorus'])
+        # revenue = MainMetrics.calc_metric('revenue', 
+        #         CustomQuery.objects.filter(kwargs['products'].values_list('custom_query')[0]),
+        #         )
+        # calc Revenue
+        for index, q in enumerate(aa):
+            if ('crm' in q.db_name) and (q.query_type=='2'):
+                stmt = "SHOW COLUMNS from {} LIKE '{}'".format(
+                    '_'.join([q.company_source, q.datasource]),
+                    'price',
+                )
+                cnx1=mysql.connector.connect(
+                    user=config('MYSQL_DB_USER'),
+                    password=config('MYSQL_DB_PASS'),
+                    host=config('MYSQL_DB_HOST'),
+                    database=q.db_name)
+                with cnx1.cursor(buffered=True) as cursor:  
+                    cursor.execute(stmt)
+                    row = cursor.fetchone()
+                    cursor.close()
+                if row:
+                    stmt = "SELECT SUM(price) as {} FROM {} WHERE products_id like '{}'".format(
+                        'Revenue',
+                        '_'.join([q.company_source, 'deals']),
+                        kwargs['products'][index].id_crm
+                    )
+                    deals = 0
+                    stmt_deals = "SELECT COUNT(id) as DEALS_COUNT FROM {} WHERE products_id like '{}'".format(
+                        '_'.join([q.company_source, 'deals']),
+                        kwargs['products'][index].id_crm
+                    )
+                    with cnx1.cursor(buffered=True, dictionary=True) as cursor:  
+                        cursor.execute(stmt)
+                        row = cursor.fetchone()
+                        metrics_summary['Revenue'] = decimal.Decimal(metrics_summary['Revenue'])+row['Revenue']
+                        cursor.close()
+                    with cnx1.cursor(buffered=True, dictionary=True) as cursor:
+                        cursor.execute(stmt_deals)
+                        row = cursor.fetchone()
+                        deals = deals+row['DEALS_COUNT']
+                        cursor.close()
+                    row = None
+                cnx1.close()
+        spend = list(MainMetrics.calc_metric('spend', kwargs['queries'], kwargs['id_clorus']).values())[0]
         # breakpoint()
-        # return str(json.loads(json.dumps(metrics_summary, cls=DjangoJSONEncoder)))
+        metrics_summary['ROAS'] = (metrics_summary['Revenue'] - decimal.Decimal(spend))/decimal.Decimal(spend)
+        # elif m == "CAC":
+            # stmt = "SHOW COLUMNS from {} LIKE '{}'".format(
+            #     '_'.join([q.company_source, q.datasource]),
+            #     'conversions'
+            # )
+        metrics_summary['CAC'] = spend/deals
+        # cnx.close()
+
         return json.dumps(metrics_summary, cls=DjangoJSONEncoder)
 
     def get_queryset_with_status(self, *args, **kwargs):

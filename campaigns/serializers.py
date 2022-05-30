@@ -20,10 +20,17 @@ class CampaignMetaDetailSerializer(serializers.ModelSerializer):
 
 class CampaignPostSerializer(serializers.ModelSerializer):
     last_change = serializers.DateTimeField(read_only=True)
-    campaign_details = CampaignMetaDetailSerializer()
+    campaign_details = CampaignMetaDetailSerializer(many=True)
     class Meta:
         model = Campaign
         fields = '__all__'
+
+    def create(self, validated_data):
+        campaign_details = validated_data.pop('campaign_details')
+        campaign_instance = Campaign.objects.create(**validated_data)
+        obj = [CampaignMetaDetail.objects.create(**details) for details in campaign_details]
+        campaign_instance.campaign_details.add(*obj)
+        return campaign_instance
         
 class CampaignOptimizationSerializer(serializers.ModelSerializer):
     # campaign = serializers.IntegerField()

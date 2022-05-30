@@ -13,7 +13,6 @@ from campaigns.serializers import (
 from company.models import CustomQuery
 from clorusapi.permissions.basic import BasicPermission
 import re
-# Create your views here.
 
 class CampaignView(APIView, LimitOffsetPagination):
     # serializer_class = CampaignSerializer
@@ -22,14 +21,12 @@ class CampaignView(APIView, LimitOffsetPagination):
     def get_object(self, user):
         try:
             return Campaign.objects.get_queryset_with_status(user)
-            # return Campaign.objects.filter(custom_query__company=APIUser.objects.get(user=user).active_company)
         except Campaign.DoesNotExist:
             return Response({'error':'Não campanhas cadastrada.'},
                         status=status.HTTP_404_NOT_FOUND)
 
     def get(self, request, *args, **kwargs):
         campaigns = self.get_object(request.user)
-        # breakpoint()
         get_return = []
         get_return.extend([
             {k: campaign.__dict__.get(k, None) for k in ('id', 'clorus_id', 'name', 'image', 'goal_description', 'goal_budget', 'budget', 'status', 'metrics_summary')}
@@ -78,25 +75,9 @@ class CampaignRawDataView(APIView, LimitOffsetPagination):
                             # **dict,
                         }, query_returned))
                     )
-                else: return Response({'error': "Preencha o campo Data Columns no Admin."}, status=status.HTTP_404_NOT_FOUND)
-                # else:
-                #     if 'campaign_id' in query_returned[0].keys():
-                #         campanhas.extend( list(map(lambda dict: {
-                #             # 'campaign_id':re.findall(r'#\d+',dict['campaign_id']),
-                #             'campaign_id':re.findall(r'#\d+',dict['campaign_name'])[0],
-                #             'campaign_name':dict['campaign_name']}, query_returned))
-                #         )
-                #     elif 'Campaign ID' in query_returned[0].keys():
-                #         campanhas.extend( list(map(lambda dict: {
-                #             # 'campaign_id':dict['Campaign ID'],
-                #             'campaign_id':re.findall(r'#\d+',dict['Campaign'])[0],
-                #             'campaign_name':dict['Campaign']}, query_returned))
-                #         )
-                #     else:
-                #         campanhas.extend( list(map(lambda dict: {
-                #             'campaign_id':'',
-                #             'campaign_name':dict['Campaign']}, query_returned))
-                #         )
+                else: 
+                    return Response({'error': "Preencha o campo Data Columns no Admin."}, status=status.HTTP_404_NOT_FOUND)
+                
             response = self.paginate_queryset(campanhas, request, view=self)
         except Exception as e:
             return Response({'error':str(e), 'detail':'Verifique com o admin.'}, 
