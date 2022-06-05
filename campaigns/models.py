@@ -45,6 +45,9 @@ class MainMetrics():
         ('spend','Custo (Spend ou Investido)'),
         ('leads','Leads'),
         ('invested','Investimento / Investido'),
+        ('roas','ROAS'),
+        ('cac','CAC - Custo de Aquisição de Cliente'),
+        ('budget','Verba'),
     ]
     METRICS_DB = [ # métricas de soma
         ('impressions',['impressions']),
@@ -57,8 +60,8 @@ class MainMetrics():
         ('views_100',['video_p100_watched_views', 'video_quartile_p100_rate', 'Completed_view']),
         ('spend',['spend', 'Cost']),
         ('leads',['conversion']),
-        # ('deals',['deals_id']),
-        # ('revenue',['price']),
+        ('deals',['id']),
+        ('revenue',['price']),
     ]
     # Métricas que dependem de outras métricas para serem calculadas
     METRICS_DB_ANNOTATE = [
@@ -66,6 +69,8 @@ class MainMetrics():
         'cpc',
         'cpv',
         'cpl',
+        'roas',
+        'cac',
         # 'visits',
     ]
     METRICS_API_KEY = [
@@ -80,7 +85,7 @@ class MainMetrics():
         'leads',
     ]
     METRICS_CRM = [
-        'revenue'
+        'revenue',
         'deals'
     ]
 
@@ -88,11 +93,14 @@ class MainMetrics():
         return dict(cls.METRICS_DB)[kwargs['metric']]
 
     def calc_annotate(metric, human_metric, *args):
+        # breakpoint()
         return {
             'ctr': {human_metric: args[0]/args[1]},
             'cpc': {human_metric: args[0]/args[1]},
             'cpv': {human_metric: args[0]/args[1]},
             'cpl': {human_metric: args[0]/args[1]},
+            'roas': {human_metric: (args[1] - args[0])/args[0] },
+            'cac': {human_metric: args[0]/args[1]},
         }.get(metric)
 
     def calc_catering(metric):
@@ -101,12 +109,13 @@ class MainMetrics():
             'cpc': ['spend','clicks'],
             'cpv': ['spend','views'],
             'cpl': ['spend','leads'],
-            'roas': ['revenue','spend'],
+            'roas': ['spend','revenue'],
             'cac': ['spend','deals']
         }.get(metric)
 
     @classmethod
-    def calc_metric(cls, metric, queries, clorus_id, cnx=None):
+    def calc_metric(cls, metric, queries, clorus_id, product_id=None, cnx=None):
+        # breakpoint()
         metrics_summary = {}
         if metric in cls.METRICS_DB_ANNOTATE:
             metrics = cls.calc_catering(metric)
@@ -124,35 +133,69 @@ class MainMetrics():
                 password=config('MYSQL_DB_PASS'),
                 host=config('MYSQL_DB_HOST'),
                 database=q.db_name)
-            # breakpoint()
             for m in metrics:
                 for col in cls.get_db_table(cls, metric=m):
-                    stmt = "SHOW COLUMNS FROM {} LIKE '{}'".format(
-                        '_'.join([q.company_source, q.datasource]),
-                        col
-                    )
+                    if m in cls.METRICS_CRM:
+                        ## breakpoint()
+                        if ('crm' in q.db_name) and (q.query_type=='2'):
+                            stmt = "SHOW COLUMNS from {} LIKE '{}'".format(
+                            '_'.join([q.company_source, q.datasource]),
+                            col,
+                        )
+                        else: # tabela nao eh crm
+                            continue
+                        #     stmt = "SELECT SUM({}) as {} FROM {} WHERE products_id like '{}'".format(
+                        #     col,
+                        # dict(cls.METRICS)[m],
+                        # '_'.join([q.company_source, 'deals']),
+                        # )
+                    else:    
+                        stmt = "SHOW COLUMNS FROM {} LIKE '{}'".format(
+                            '_'.join([q.company_source, q.datasource]),
+                            col
+                        )
                     # if column exists
                     with cnx.cursor(buffered=True) as cursor:  
                         cursor.execute(stmt)
                         row = cursor.fetchone()
                         cursor.close()
                         if row:
-                            stmt = "SELECT  CAST(SUM({}) AS SIGNED) as '{}' FROM {} WHERE id_clorus like '{}'".format(
-                                col, 
-                                dict(cls.METRICS)[m],
-                                '_'.join([q.company_source, q.datasource]),
-                                clorus_id
-                            )
+                            if ('crm' in q.db_name) and (q.query_type=='2'):
+                                if m in ['deals']:
+                                    stmt = "SELECT  COUNT({}) as {} FROM {} WHERE products_id like '{}'".format(
+                                    col, 
+                                    dict(cls.METRICS)[m],
+                                    '_'.join([q.company_source, 'deals']),
+                                    product_id
+                                )
+                                else:
+                                    stmt = "SELECT  SUM({}) as {} FROM {} WHERE products_id like '{}'".format(
+                                        col, 
+                                        dict(cls.METRICS)[m],
+                                        '_'.join([q.company_source, q.datasource]),
+                                        product_id
+                                    )
+                            else:
+                                stmt = "SELECT  CAST(SUM({}) AS SIGNED) as '{}' FROM {} WHERE id_clorus like '{}'".format(
+                                    col, 
+                                    dict(cls.METRICS)[m],
+                                    '_'.join([q.company_source, q.datasource]),
+                                    clorus_id
+                                )
                             with cnx.cursor(buffered=True, dictionary=True) as cursor:  
                                 cursor.execute(stmt)
                                 row = cursor.fetchone()
                                 col_name = dict(cls.METRICS)[m]
                                 if col_name in metrics_summary.keys():
-                                    metrics_summary[col_name] = metrics_summary[col_name]+row[col_name]
+                                    if ('crm' in q.db_name) and (q.query_type=='2'):
+                                        metrics_summary[col_name] = decimal.Decimal(metrics_summary[col_name])+row[col_name]
+                                    else:
+                                        metrics_summary[col_name] = metrics_summary[col_name]+row[col_name]
                                 else:
                                     metrics_summary.update(row)
                                 cursor.close()
             cnx.close()
+        ## breakpoint()
         if metric in cls.METRICS_DB_ANNOTATE:
             # breakpoint()
             return cls.calc_annotate(
@@ -165,7 +208,6 @@ class MainMetrics():
 
 class CampaignManager(models.Manager):
     def get_recent_date(self, *args):
-        # breakpoint()
         try:
             cnx=mysql.connector.connect(
                 user=config('MYSQL_DB_USER'),
@@ -196,80 +238,24 @@ class CampaignManager(models.Manager):
         finally:
             cnx.close()
 
-
-    # def get_metrics_sum(self, **kwargs):
-    #    # TODO transferir para class de métricas
-        # metrics_summary = {}
-        # for q in kwargs['queries']:
-        #     cnx=mysql.connector.connect(
-        #         user=config('MYSQL_DB_USER'),
-        #         password=config('MYSQL_DB_PASS'),
-        #         host=config('MYSQL_DB_HOST'),
-        #         database=q.db_name)
-        #     # breakpoint()
-        #     for m in kwargs['metrics']:
-        #         for col in m.get_db_table(): 
-        #             stmt = "SHOW COLUMNS from {} LIKE '{}'".format(
-        #                 '_'.join([q.company_source, q.datasource]),
-        #                 col
-        #             )
-        #             # if column exists
-        #             with cnx.cursor(buffered=True) as cursor:  
-        #                 cursor.execute(stmt)
-        #                 row = cursor.fetchone()
-        #                 cursor.close()
-        #             if row:
-        #                 stmt = "SELECT  CAST(SUM({}) AS SIGNED) as {} FROM {} WHERE id_clorus like '{}'".format(
-        #                     col, 
-        #                     dict(m.DETAIL_METRICS)[m.id_name],
-        #                     '_'.join([q.company_source, q.datasource]),
-        #                     kwargs['id_clorus']
-        #                 )
-        #                 with cnx.cursor(buffered=True, dictionary=True) as cursor:  
-        #                     cursor.execute(stmt)
-        #                     row = cursor.fetchone()
-        #                     # breakpoint()
-        #                     if col in metrics_summary.keys():
-        #                         metrics_summary[col] = metrics_summary[col]+row[col]
-        #                     else:
-        #                         metrics_summary.update(row)
-        #                     cursor.close()
-        #             else: # métricas calculadas
-        #                 pass
-        #     cnx.close()
-        # # breakpoint()
-        # return str(metrics_summary)
-
-    def get_calc_metric(self, metric):
-        # métricas calculadas
-        return {
-            #CPC - Custo por Clique: f"select sum(cost)/NULLIF(SUM(clicks), 1) as CPC from test.sebraeal_facebookads;"
-            'Leads': "SELECT SUM({}) as Leads FROM {}",
-            'Revenue':f"select sum(cost)/NULLIF(SUM(clicks), 1) as CPC from test.sebraeal_facebookads;",
-            'ROAS':f"select sum(cost)/NULLIF(SUM(clicks), 1) as CPC from test.sebraeal_facebookads;",
-            'CAC':f"select sum(cost)/NULLIF(SUM(clicks), 1) as CPC from test.sebraeal_facebookads;"
-        }.get(metric)
+    # def get_calc_metric(self, metric):
+    #     # métricas calculadas
+    #     return {
+    #         #CPC - Custo por Clique: f"select sum(cost)/NULLIF(SUM(clicks), 1) as CPC from test.sebraeal_facebookads;"
+    #         'Leads': "SELECT SUM({}) as Leads FROM {}",
+    #         'Revenue':f"select sum(cost)/NULLIF(SUM(clicks), 1) as CPC from test.sebraeal_facebookads;",
+    #         'ROAS':f"select sum(cost)/NULLIF(SUM(clicks), 1) as CPC from test.sebraeal_facebookads;",
+    #         'CAC':f"select sum(cost)/NULLIF(SUM(clicks), 1) as CPC from test.sebraeal_facebookads;"
+    #     }.get(metric)
         
     def get_metrics_campaign(self, **kwargs):
-        # breakpoint()
         metrics_summary = {
             'Leads': 0,
             'Revenue': 0,
             'ROAS': 0,
             'CAC': 0
         }
-        # for q in kwargs['queries']:
-        #     cnx=mysql.connector.connect(
-        #         user=config('MYSQL_DB_USER'),
-        #         password=config('MYSQL_DB_PASS'),
-        #         host=config('MYSQL_DB_HOST'),
-        #         database=q.db_name)
-            
-            # for m in kwargs['metrics']:
-                # print(m)
-                # breakpoint()
-    # if m == "Leads":
-        # breakpoint()
+ 
         for q in kwargs['queries']:
             try:
                 if q.datasource == 'conversions':
@@ -296,13 +282,7 @@ class CampaignManager(models.Manager):
                         with cnx.cursor(buffered=True, dictionary=True) as cursor:  
                             cursor.execute(stmt)
                             row = cursor.fetchone()
-                    # print(m)
-                    # breakpoint()
-                    # if m in metrics_summary.keys():
-                        # metrics_summary[m] = decimal.Decimal(metrics_summary[m])+row[m]
-                        # if isinstance(row[m], decimal.Decimal):
-                            # metrics_summary[m] = decimal.Decimal(metrics_summary[m])+row[m]
-                        # else:
+ 
                             metrics_summary['Leads'] = metrics_summary['Leads']+row['Leads']
                     # else:
                         # metrics_summary.update(row)
@@ -317,34 +297,11 @@ class CampaignManager(models.Manager):
                     'cause': _(f'Tabela {".".join([q.db_name, "_".join([q.company_source, q.datasource])])} no MySQL não possui a coluna especificada.')}
                 )
 
-    # elif m == "Revenue":
-        # continue
-        # if ('crm' in q.db_name) and (q.query_type=='2'):
-        #     stmt = "SHOW COLUMNS from {} LIKE '{}'".format(
-        #         '_'.join([q.company_source, q.datasource]),
-        #         'price',
-        #     )
-        #     with cnx.cursor(buffered=True) as cursor:  
-        #         cursor.execute(stmt)
-        #         row = cursor.fetchone()
-        #         cursor.close()
-        #     if row:
-        #         stmt = "SELECT SUM(price) as {} FROM {}".format(
-        #             m,
-        #             '_'.join([q.company_source, q.datasource]),
-        #         )
-    # elif m == "ROAS":
-        # TODO otimizar código repetido
-        # calc Revenue
-        
         # calc spend
         ptr = list(kwargs['products'].values_list('custom_query')[0])
         
         aa=CustomQuery.objects.filter(pk__in=ptr)
-        # spend = MainMetrics.calc_metric('spend', kwargs['queries'], kwargs['id_clorus'])
-        # revenue = MainMetrics.calc_metric('revenue', 
-        #         CustomQuery.objects.filter(kwargs['products'].values_list('custom_query')[0]),
-        #         )
+
         # calc Revenue
         for index, q in enumerate(aa):
             if ('crm' in q.db_name) and (q.query_type=='2'):
@@ -368,6 +325,8 @@ class CampaignManager(models.Manager):
                         kwargs['products'][index].id_crm
                     )
                     deals = 0
+                    # TODO
+                    # close_date(crm) < expiration_date(campaign)
                     stmt_deals = "SELECT COUNT(id) as DEALS_COUNT FROM {} WHERE products_id like '{}'".format(
                         '_'.join([q.company_source, 'deals']),
                         kwargs['products'][index].id_crm
@@ -386,15 +345,11 @@ class CampaignManager(models.Manager):
                 cnx1.close()
         spend = list(MainMetrics.calc_metric('spend', kwargs['queries'], kwargs['id_clorus']).values())[0]
         # breakpoint()
+        # calc ROAS
         metrics_summary['ROAS'] = (metrics_summary['Revenue'] - decimal.Decimal(spend))/decimal.Decimal(spend)
+        
         # elif m == "CAC":
-            # stmt = "SHOW COLUMNS from {} LIKE '{}'".format(
-            #     '_'.join([q.company_source, q.datasource]),
-            #     'conversions'
-            # )
         metrics_summary['CAC'] = spend/deals
-        # cnx.close()
-
         return json.dumps(metrics_summary, cls=DjangoJSONEncoder)
 
     def get_queryset_with_status(self, *args, **kwargs):
@@ -404,7 +359,7 @@ class CampaignManager(models.Manager):
             APIUser.objects.get(user=args[0]).active_company
             )
         if not retorno:
-            raise NotFound('Não existe comercial para a empresa ativa.')
+            raise NotFound('Não existe nenhuma Campanha para a empresa ativa.')
         tempcq = CustomQuery.objects.get(pk=retorno[0].custom_query_id)
         
         # pega todos custom_query e busca as métricas em todos para somar
@@ -423,7 +378,9 @@ class CampaignManager(models.Manager):
         )
 
 class CampaignMetaDetail(CommonProduct):
-    # custom_query de produto, para rastreamento da origem desse item
+    """ 
+    custom_query de produto, para rastreamento da origem desse item
+    """
     custom_query = models.ForeignKey(CustomQuery, on_delete=models.CASCADE, verbose_name="Query de origem do item em raw_data")
     class Meta:
         verbose_name = 'Detalhes de Campanha'
@@ -449,6 +406,7 @@ class Campaign(models.Model):
     # comercial = models.ForeignKey(Comercial, on_delete=models.CASCADE, null=True)
     # company = models.ForeignKey(Company, on_delete=models.CASCADE, default=1)
     budget = models.CharField(max_length=255, default='', verbose_name="Valor Investido")
+    date_created = models.DateTimeField(auto_now_add=True)
     last_change = models.DateTimeField(blank=True, null=True)
 
     objects = CampaignManager()
@@ -469,11 +427,11 @@ class Optimization(models.Model):
         ('3','Neutro')
     ]
     campaign = models.ForeignKey(Campaign, on_delete=models.CASCADE)
-    date = models.DateField(auto_now_add=True, db_index=True)
+    date_created = models.DateField(auto_now_add=True, db_index=True)
     description = models.TextField()
     hypothesis = models.TextField()
     result = models.TextField()
     result_type = models.CharField(max_length=2, choices=DETAIL_RESULT)
 
     class Meta:
-        ordering = ['date']
+        ordering = ['date_created']

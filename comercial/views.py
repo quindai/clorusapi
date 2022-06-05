@@ -12,6 +12,7 @@ from .serializers import ComercialProductUpdateSerializer, ComercialSerializer
 
 class ComercialAPIView(generics.GenericAPIView,
                         mixins.CreateModelMixin,
+                        mixins.UpdateModelMixin,
                         mixins.ListModelMixin):
     serializer_class = ComercialSerializer
     queryset = Comercial.objects.all()
@@ -23,6 +24,12 @@ class ComercialAPIView(generics.GenericAPIView,
     def post(self, request, *args, **kwargs):
         return self.create(request, *args, **kwargs)
 
+    def patch(self, request, *args, **kwargs):
+        # TODO
+        if not request.data.get('id', ''):
+            return Response({"detail":"Insira o campo 'id'."}, status=status.HTTP_400_BAD_REQUEST)
+        return super().patch(request, *args, **kwargs)
+
 class ComercialProductUpdateView(generics.GenericAPIView):
     serializer_class = ComercialProductUpdateSerializer
     # queryset = GoalPlanner.objects.all()
@@ -33,15 +40,11 @@ class ComercialProductUpdateView(generics.GenericAPIView):
         except GoalPlanner.DoesNotExist:
             raise NotFound({'error':'Não conseguimos encontrar essa meta para atualizar.'})
 
-
     def put(self, request, *args, **kwargs):
-        # goal_planner = self.get_object(kwargs['id'])
-        # breakpoint()
         serializer = ComercialProductUpdateSerializer( data=request.data, context=kwargs)
         if serializer.is_valid():
             serializer.save()
         return Response(serializer.data)
-        # self.update(self,request, *args, **kwargs)
 
 class ComercialDetailsView(APIView, LimitOffsetPagination):
     permission_classes = [permissions.IsAuthenticated, BasicPermission]

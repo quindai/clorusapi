@@ -98,7 +98,6 @@ class CustomQuery(models.Model):
         else:
             cnx.close()
 
-    # se for CRM não possui id_clorus
     query_type = models.CharField(max_length=2, choices=DETAIL_QUERY_TYPE, default='1')
     db_name = models.CharField(max_length=100, validators =[validate_db_name], 
                     help_text="Nome do Schema no banco MySql. Exemplo: client_data") #exemplo client_data
@@ -108,6 +107,7 @@ class CustomQuery(models.Model):
                     blank=True, help_text="Nome do social. Exemplo: googleads|facebookads|programatica") #[googleads|facebookads|programatica]
     data_columns = models.TextField(null=True, blank=True, help_text="Colunas da tabela separadas por vírgula. A primeira coluna tem que conter o idclorus. Exemplo: campaign_id, campaign_name")
     company = models.ForeignKey(Company, related_name='company_rel', on_delete=models.CASCADE)
+    # date_created = models.
 
     class Meta:
         verbose_name = "Query Personalizada"

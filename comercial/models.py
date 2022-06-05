@@ -2,6 +2,7 @@ from django.db import models
 from django.dispatch import receiver
 from django.db.models.signals import post_save, pre_save
 import datetime
+from company.models import Company
 from simple_history.models import HistoricalRecords
 from clorusapi.utils.common import CommonProduct
 # import decimal #for decimal field
@@ -86,6 +87,7 @@ class Comercial(models.Model):
     segmentation = models.CharField(max_length=2, choices=DETAIL_SEGMENTATION,
                     verbose_name="Segmentação", default='1')    
     goal = models.ForeignKey(GoalPlanner, on_delete=models.CASCADE, verbose_name="Meta")
+    company = models.OneToOneField(Company, on_delete=models.CASCADE)
     history = HistoricalRecords()
 
     objects = ComercialManager()

@@ -16,5 +16,7 @@ class CompanyAdmin(admin.ModelAdmin):
         ('Dados da Empresa', {'fields': ('cnpj','name','logo','funil')}),
     ]
     inlines = [CustomMetricsInline, CustomQueryInline]
+    list_display = ('id','name')
+    list_filter = ('name',)
 
 admin.site.register(Company, CompanyAdmin)

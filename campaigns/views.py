@@ -27,19 +27,22 @@ class CampaignView(APIView, LimitOffsetPagination):
 
     def get(self, request, *args, **kwargs):
         campaigns = self.get_object(request.user)
-        get_return = []
-        get_return.extend([
-            {k: campaign.__dict__.get(k, None) for k in ('id', 'clorus_id', 'name', 'image', 'goal_description', 'goal_budget', 'budget', 'status', 'metrics_summary')}
-            for campaign in campaigns 
-        ])
+        serializer = CampaignSerializer(campaigns, many=True)
+        # breakpoint()
+        return Response(serializer.data)
+        # get_return = []
+        # get_return.extend([
+        #     {k: campaign.__dict__.get(k, None) for k in ('id', 'clorus_id', 'name', 'image', 'goal', 'goal_description', 'goal_budget', 'budget', 'status', 'metrics_summary')}
+        #     for campaign in campaigns 
+        # ])
         
-        try:
-            response = self.paginate_queryset(get_return, request, view=self)
-        except Exception as e:
-            return Response({'error':str(e), 'detail':'Verifique com o admin.'}, 
-                    status=status.HTTP_404_NOT_FOUND)
-        else:
-            return self.get_paginated_response(response)
+        # try:
+        #     response = self.paginate_queryset(get_return, request, view=self)
+        # except Exception as e:
+        #     return Response({'error':str(e), 'detail':'Verifique com o admin.'}, 
+        #             status=status.HTTP_404_NOT_FOUND)
+        # else:
+        #     return self.get_paginated_response(response)
 
 class CampaignPostView(generics.GenericAPIView,
                         mixins.CreateModelMixin):
@@ -85,7 +88,6 @@ class CampaignRawDataView(APIView, LimitOffsetPagination):
         else:
             return self.get_paginated_response(response)
 
-    
 
 class CampaignOptimizationView(generics.GenericAPIView,
                         mixins.CreateModelMixin):
@@ -116,7 +118,8 @@ class CalcMetricView(APIView, LimitOffsetPagination):
     # Url na raiz do app
     def get_object(self, user):
         try:
-            return CustomQuery.objects.filter(query_type='1', company=APIUser.objects.get(user=user).active_company)
+            return CustomQuery.objects.filter(company=APIUser.objects.get(user=user).active_company)
+            # return CustomQuery.objects.filter(query_type='1', company=APIUser.objects.get(user=user).active_company)
         except CustomQuery.DoesNotExist:
             return Response({'error':'Usuário não tem empresa ativa.'},
                         status=status.HTTP_400_BAD_REQUEST)
@@ -125,9 +128,10 @@ class CalcMetricView(APIView, LimitOffsetPagination):
         queries = self.get_object(request.user)
         # Pode ser nome da métrica ou a palavra "all"
         metric_name = kwargs.get('metric_name', '')
-        clorus_id = kwargs.get('clorus_id', '')
+        clorus_id = kwargs.get('id_clorus', '') # clorus_id, products_id
+        product_id = kwargs.get('id_crm', '')
         if metric_name:
-            calc = MainMetrics.calc_metric(metric_name, queries, clorus_id)
+            calc = MainMetrics.calc_metric(metric_name, queries, clorus_id,product_id)
             # breakpoint()
         else:
             return Response({'error':'Métrica inexistente.'}, 

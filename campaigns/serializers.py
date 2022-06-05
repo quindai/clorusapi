@@ -1,22 +1,31 @@
 from rest_framework import serializers
 
-from company.serializers import CompanySerializer
 from .models import Campaign, CampaignMetaDetail, Optimization
-from comercial.serializers import ComercialSerializer
-
-class CampaignSerializer(serializers.ModelSerializer):
-    # comercial = ComercialSerializer()
-    status = serializers.CharField()
-    # company = CompanySerializer()
-    comercial = ComercialSerializer()
-    class Meta:
-        model = Campaign
-        fields = '__all__'
 
 class CampaignMetaDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = CampaignMetaDetail
         fields = '__all__'
+
+class CampaignSerializer(serializers.ModelSerializer):
+    status = serializers.CharField()
+    metrics_summary = serializers.CharField()
+    goal = serializers.SerializerMethodField()
+    year = serializers.SerializerMethodField()
+    month = serializers.SerializerMethodField()
+    campaign_details = CampaignMetaDetailSerializer(many=True)
+    class Meta:
+        model = Campaign
+        fields = '__all__'
+
+    def get_goal(self,obj):
+        return dict(Campaign.GOAL_SELECT)[obj.goal]
+
+    def get_year(self, obj):
+        return obj.date_created.strftime('%Y')
+
+    def get_month(self, obj):
+        return obj.date_created.strftime('%b')
 
 class CampaignPostSerializer(serializers.ModelSerializer):
     last_change = serializers.DateTimeField(read_only=True)
@@ -40,6 +49,10 @@ class CampaignOptimizationSerializer(serializers.ModelSerializer):
 
 class CampaignOptimizationGETSerializer(serializers.ModelSerializer):
     campaign_id = serializers.IntegerField()
+    result_type = serializers.SerializerMethodField()
     class Meta:
         model = Optimization
         fields = '__all__'
+
+    def get_result_type(self, obj):
+        return dict(Optimization.DETAIL_RESULT)[obj.result_type]

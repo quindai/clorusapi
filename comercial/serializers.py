@@ -1,6 +1,9 @@
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError, NotFound
+
+from company.models import Company
 from .models import Comercial, GoalPlanner, Product
+from django.utils import timezone
 
 class HistoricalRecordField(serializers.ListField):
     child = serializers.DictField()
@@ -27,6 +30,7 @@ class ComercialSerializer(serializers.ModelSerializer):
     _begin_date = serializers.DateField(read_only=True)
     goal = GoalPlannerSerializer()
     history = HistoricalRecordField(read_only=True)
+    # date_created = serializers.DateField(read_only=True)
     class Meta:
         model = Comercial
         fields = '__all__'
@@ -44,10 +48,10 @@ class ComercialSerializer(serializers.ModelSerializer):
         new_goal = GoalPlanner.objects.create()
         for p in goal['product']:
             # breakpoint()
-            products = Product(**p)
+            products = Product(date_created=timezone.localtime(),**p)
             products.save()
             new_goal.product.add(products)
-        comercial = Comercial(**source)
+        comercial = Comercial(company=Company.objects.get(pk=source.pop('company')), **source)
         comercial.goal = new_goal
         comercial.save()
         return comercial
@@ -70,19 +74,10 @@ class ComercialProductUpdateSerializer(serializers.ModelSerializer):
             goal.products.exclude(pk__in=product_ids)
             pp = [Product.objects.create(**p) for p in products]
             goal.products.add(*pp)
-            # for product in products:
-            #     breakpoint()
-                # product = dict(product)
-                # [p['id'] for p in products]
-                
-                # goal.product.get(id=product['id'], id_crm=product['id_crm']).delete(),
-                # pp = Product.objects.create(**product)
-                # goal.product.add(pp)
-
         except GoalPlanner.DoesNotExist:
             raise NotFound("Meta não encontrada!")
-        except Product.DoesNotExist:
-            raise NotFound("Tem algum produto que não existe!")
+        # except Product.DoesNotExist:
+        #     raise NotFound("Tem algum produto que não existe!")
         return goal.product
 
     # def update(self, request, *args, **kwargs):
