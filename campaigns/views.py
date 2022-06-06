@@ -28,7 +28,7 @@ class CampaignView(APIView, LimitOffsetPagination):
     def get(self, request, *args, **kwargs):
         campaigns = self.get_object(request.user)
         serializer = CampaignSerializer(campaigns, many=True)
-        # breakpoint()
+
         return Response(serializer.data)
         # get_return = []
         # get_return.extend([

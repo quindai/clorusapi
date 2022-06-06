@@ -49,6 +49,7 @@ class MainMetrics():
         ('budget','Verba'),
         ('balance','Saldo'),
         ('invested','Investido'),
+        ('conversions','Conversão'),
     ]
     METRICS_DB = [ # métricas de soma
         ('impressions',['impressions']),
@@ -63,6 +64,7 @@ class MainMetrics():
         ('leads',['conversion']),
         ('deals',['id']),
         ('revenue',['price']),
+        ('conversions', ['conversion'])
     ]
     # Métricas que dependem de outras métricas para serem calculadas
     METRICS_DB_ANNOTATE = [
@@ -86,10 +88,16 @@ class MainMetrics():
         'views_100',
         'spend',
         'leads',
+        'conversions',
     ]
     METRICS_CRM = [
         'revenue',
         'deals'
+    ]
+    METRICS_RD = [
+        'email',
+        'opportunities',
+        # 'conversions'
     ]
     METRICS_MARKETEER = [
         'budget'
@@ -130,18 +138,20 @@ class MainMetrics():
             'cac': ['spend','deals'],
             'balance': ['budget','spend'],
             'invested': ['spend','cpc','cpv','cac','cpl'],
+            'email': ['sent', 'delivered', 'opened', 'tx_opened', 'tx_clicks']
         }.get(metric)
 
     @classmethod
     def calc_metric(cls, metric, queries, clorus_id, product_id=None, campaigns=None, cnx=None):
         # breakpoint()
-        metrics_summary = {}
+        if not 'metrics_summary' in vars():
+            metrics_summary = {}
         if metric in cls.METRICS_DB_ANNOTATE:
             metrics = cls.calc_catering(metric)
         elif metric in cls.METRICS_MARKETEER:
             metrics_summary = {dict(cls.METRICS)[metric]: campaigns.aggregate(models.Sum('budget'))['budget__sum']}
             queries = [] # garante que não vai executar outro trecho
-        elif metric not in [*cls.METRICS_API_KEY, *cls.METRICS_DB_ANNOTATE, 'all']:
+        elif metric not in [*cls.METRICS_API_KEY, *cls.METRICS_RD, 'all']:
             raise NotFound(
                 _(f'{metric} métrica não existe, ou não foi mapeada.')
             )
@@ -158,6 +168,17 @@ class MainMetrics():
                     metrics_summary.update(
                         cls.calc_metric(m, queries, clorus_id, product_id, campaigns, cnx)
                     )
+        elif metric in cls.METRICS_RD:
+            # breakpoint()
+            metrics = ['email_' + x for x in cls.calc_catering(metric)]
+            for q in queries:
+                if 'emails' in q.datasource:
+                    cnx=mysql.connector.connect(
+                        user=config('MYSQL_DB_USER'),
+                        password=config('MYSQL_DB_PASS'),
+                        host=config('MYSQL_DB_HOST'),
+                        database=q.db_name)
+            pass
         else:
             for q in queries:
                 # if not cnx:
@@ -242,6 +263,7 @@ class MainMetrics():
 
 class CampaignManager(models.Manager):
     def get_recent_date(self, *args):
+        # breakpoint()
         try:
             cnx=mysql.connector.connect(
                 user=config('MYSQL_DB_USER'),
@@ -257,7 +279,7 @@ class CampaignManager(models.Manager):
                 row = cursor.fetchone()
                 cursor.close()
 
-            temp_date = datetime.datetime.strptime(row[0], '%Y-%d-%m')
+            temp_date = datetime.datetime.strptime(row[0], '%Y-%m-%d')
             if temp_date <= datetime.datetime.now()-datetime.timedelta(days=30):
                 retorno = 'Inativa'
             elif temp_date < datetime.datetime.now()-datetime.timedelta(days=15):
@@ -289,7 +311,10 @@ class CampaignManager(models.Manager):
             'ROAS': 0,
             'CAC': 0
         }
- 
+
+        metrics_summary['Saldo'] = list(MainMetrics.calc_metric('balance', kwargs['queries'], kwargs['id_clorus'], campaigns=kwargs['campaign']).values())[0]
+        # breakpoint()
+
         for q in kwargs['queries']:
             try:
                 if q.datasource == 'conversions':
@@ -330,13 +355,15 @@ class CampaignManager(models.Manager):
                     {'detail':f'{err}',
                     'cause': _(f'Tabela {".".join([q.db_name, "_".join([q.company_source, q.datasource])])} no MySQL não possui a coluna especificada.')}
                 )
-
+        # breakpoint()
         # calc spend
         ptr = list(kwargs['products'].values_list('custom_query')[0])
         
+        # breakpoint()
         aa=CustomQuery.objects.filter(pk__in=ptr)
 
         # calc Revenue
+        deals = 0
         for index, q in enumerate(aa):
             if ('crm' in q.db_name) and (q.query_type=='2'):
                 stmt = "SHOW COLUMNS from {} LIKE '{}'".format(
@@ -358,7 +385,7 @@ class CampaignManager(models.Manager):
                         '_'.join([q.company_source, 'deals']),
                         kwargs['products'][index].id_crm
                     )
-                    deals = 0
+                    
                     # TODO
                     # close_date(crm) < expiration_date(campaign)
                     stmt_deals = "SELECT COUNT(id) as DEALS_COUNT FROM {} WHERE products_id like '{}'".format(
@@ -388,24 +415,29 @@ class CampaignManager(models.Manager):
 
     def get_queryset_with_status(self, *args, **kwargs):
         # breakpoint()
+        # retorno = self.filter(
+        #     custom_query__company=
+        #     APIUser.objects.get(user=args[0]).active_company
+        #     )
         retorno = self.filter(
-            custom_query__company=
-            APIUser.objects.get(user=args[0]).active_company
+            company=APIUser.objects.get(user=args[0]).active_company
             )
         if not retorno:
             raise NotFound('Não existe nenhuma Campanha para a empresa ativa.')
-        tempcq = CustomQuery.objects.get(pk=retorno[0].custom_query_id)
+        # tempcq = CustomQuery.objects.get(pk=retorno[0].custom_query_id)
+        tempcq = retorno[0].custom_query
         
         # pega todos custom_query e busca as métricas em todos para somar
         # queries = retorno[0].custom_query.company.company_rel.filter(query_type='1') # campanhas
-        queries = retorno[0].custom_query.company.company_rel.all()
+        # queries = retorno[0].custom_query.company.company_rel.all()
+        queries = [x.custom_query for x in retorno]
         # metrics = retorno[0].custom_query.company.custommetrics_set.all()
         
         return retorno.annotate(
             # metrics_summary = models.Value(
             #     self.get_metrics_sum(metrics=metrics, queries=queries, id_clorus=retorno[0].clorus_id)),
             metrics_summary = models.Value(
-                self.get_metrics_campaign(metrics=['Leads','Revenue','ROAS','CAC'], queries=queries, products=retorno[0].campaign_details.all(), id_clorus=retorno[0].clorus_id)),
+                self.get_metrics_campaign(metrics=['Leads','Revenue','ROAS','CAC'], queries=queries, campaign=retorno,products=retorno[0].campaign_details.all(), id_clorus=retorno[0].clorus_id)),
             status = models.Value(self.get_recent_date(
                 tempcq, retorno[0].clorus_id
             ))
