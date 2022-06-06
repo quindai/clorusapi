@@ -116,22 +116,24 @@ class CampaignOptimizationGETView(generics.GenericAPIView,
 
 class CalcMetricView(APIView, LimitOffsetPagination):
     # Url na raiz do app
-    def get_object(self, user):
+    def get_object(self, company):
         try:
-            return CustomQuery.objects.filter(company=APIUser.objects.get(user=user).active_company)
+            return CustomQuery.objects.filter(company=company)
             # return CustomQuery.objects.filter(query_type='1', company=APIUser.objects.get(user=user).active_company)
         except CustomQuery.DoesNotExist:
             return Response({'error':'Usuário não tem empresa ativa.'},
                         status=status.HTTP_400_BAD_REQUEST)
     def get(self, request, *args, **kwargs):
+        company = APIUser.objects.get(user=request.user).active_company
+        campaigns = company.campaign_set.all()
+        queries = self.get_object(company)
         # breakpoint()
-        queries = self.get_object(request.user)
         # Pode ser nome da métrica ou a palavra "all"
         metric_name = kwargs.get('metric_name', '')
         clorus_id = kwargs.get('id_clorus', '') # clorus_id, products_id
         product_id = kwargs.get('id_crm', '')
         if metric_name:
-            calc = MainMetrics.calc_metric(metric_name, queries, clorus_id,product_id)
+            calc = MainMetrics.calc_metric(metric_name, queries, clorus_id, product_id, campaigns)
             # breakpoint()
         else:
             return Response({'error':'Métrica inexistente.'}, 

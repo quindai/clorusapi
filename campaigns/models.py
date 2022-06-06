@@ -20,7 +20,6 @@ import decimal #for decimal field
 from django.core.serializers.json import DjangoJSONEncoder
 
 # TODO 
-# reverse search em custom_query->company->custom_metric 
 # SELECT SUM(impressions), id_clorus FROM test.sebraeal_programatica where id_clorus='#238470';
 
 # TODO Soh retorne métricas que estão no banco de dados
@@ -48,6 +47,8 @@ class MainMetrics():
         ('roas','ROAS'),
         ('cac','CAC - Custo de Aquisição de Cliente'),
         ('budget','Verba'),
+        ('balance','Saldo'),
+        ('invested','Investido'),
     ]
     METRICS_DB = [ # métricas de soma
         ('impressions',['impressions']),
@@ -71,6 +72,8 @@ class MainMetrics():
         'cpl',
         'roas',
         'cac',
+        'balance',
+        'invested',
         # 'visits',
     ]
     METRICS_API_KEY = [
@@ -88,20 +91,34 @@ class MainMetrics():
         'revenue',
         'deals'
     ]
+    METRICS_MARKETEER = [
+        'budget'
+    ]
+    METRICS_HYBRID = [
+        'balance',
+        'invested'
+    ]
 
     def get_db_table(cls, **kwargs):
         return dict(cls.METRICS_DB)[kwargs['metric']]
 
     def calc_annotate(metric, human_metric, *args):
         # breakpoint()
-        return {
-            'ctr': {human_metric: args[0]/args[1]},
-            'cpc': {human_metric: args[0]/args[1]},
-            'cpv': {human_metric: args[0]/args[1]},
-            'cpl': {human_metric: args[0]/args[1]},
-            'roas': {human_metric: (args[1] - args[0])/args[0] },
-            'cac': {human_metric: args[0]/args[1]},
-        }.get(metric)
+        if args[1] == 0:
+            return {human_metric: args[1]}
+        try:
+            return {
+                'ctr': {human_metric: args[0]/args[1]},
+                'cpc': {human_metric: args[0]/args[1]},
+                'cpv': {human_metric: args[0] if args[1]==0 else args[0]/args[1]},
+                'cpl': {human_metric: args[0]/args[1]},
+                'roas': {human_metric: (args[1] - args[0])/args[0] },
+                'cac': {human_metric: args[0]/args[1]},
+                'balance': {human_metric: args[0]-args[1]},
+                'invested': {human_metric: sum(args)}
+            }.get(metric)
+        except Exception as e:
+            raise ValidationError({'error':e, 'detail':f'Métrica {human_metric} com divisor zero 0, não pode ser calculada.'})
 
     def calc_catering(metric):
         return {
@@ -110,15 +127,20 @@ class MainMetrics():
             'cpv': ['spend','views'],
             'cpl': ['spend','leads'],
             'roas': ['spend','revenue'],
-            'cac': ['spend','deals']
+            'cac': ['spend','deals'],
+            'balance': ['budget','spend'],
+            'invested': ['spend','cpc','cpv','cac','cpl'],
         }.get(metric)
 
     @classmethod
-    def calc_metric(cls, metric, queries, clorus_id, product_id=None, cnx=None):
+    def calc_metric(cls, metric, queries, clorus_id, product_id=None, campaigns=None, cnx=None):
         # breakpoint()
         metrics_summary = {}
         if metric in cls.METRICS_DB_ANNOTATE:
             metrics = cls.calc_catering(metric)
+        elif metric in cls.METRICS_MARKETEER:
+            metrics_summary = {dict(cls.METRICS)[metric]: campaigns.aggregate(models.Sum('budget'))['budget__sum']}
+            queries = [] # garante que não vai executar outro trecho
         elif metric not in [*cls.METRICS_API_KEY, *cls.METRICS_DB_ANNOTATE, 'all']:
             raise NotFound(
                 _(f'{metric} métrica não existe, ou não foi mapeada.')
@@ -126,83 +148,95 @@ class MainMetrics():
         else:
             metrics = cls.METRICS_API_KEY if metric=='all' else [metric]
         # breakpoint()
-        for q in queries:
-            # if not cnx:
-            cnx=mysql.connector.connect(
-                user=config('MYSQL_DB_USER'),
-                password=config('MYSQL_DB_PASS'),
-                host=config('MYSQL_DB_HOST'),
-                database=q.db_name)
+        if metric in cls.METRICS_HYBRID:
             for m in metrics:
-                for col in cls.get_db_table(cls, metric=m):
-                    if m in cls.METRICS_CRM:
-                        ## breakpoint()
-                        if ('crm' in q.db_name) and (q.query_type=='2'):
-                            stmt = "SHOW COLUMNS from {} LIKE '{}'".format(
-                            '_'.join([q.company_source, q.datasource]),
-                            col,
-                        )
-                        else: # tabela nao eh crm
-                            continue
-                        #     stmt = "SELECT SUM({}) as {} FROM {} WHERE products_id like '{}'".format(
-                        #     col,
-                        # dict(cls.METRICS)[m],
-                        # '_'.join([q.company_source, 'deals']),
-                        # )
-                    else:    
-                        stmt = "SHOW COLUMNS FROM {} LIKE '{}'".format(
-                            '_'.join([q.company_source, q.datasource]),
-                            col
-                        )
-                    # if column exists
-                    with cnx.cursor(buffered=True) as cursor:  
-                        cursor.execute(stmt)
-                        row = cursor.fetchone()
-                        cursor.close()
-                        if row:
+                if dict(cls.METRICS)[m] in metrics_summary.keys():
+                    metrics_summary[dict(cls.METRICS)[m]] = metrics_summary[dict(cls.METRICS)[m]] + metrics_summary.update(
+                        cls.calc_metric(m, queries, clorus_id, product_id, campaigns, cnx)
+                    )[dict(cls.METRICS)[m]]
+                else:
+                    metrics_summary.update(
+                        cls.calc_metric(m, queries, clorus_id, product_id, campaigns, cnx)
+                    )
+        else:
+            for q in queries:
+                # if not cnx:
+                cnx=mysql.connector.connect(
+                    user=config('MYSQL_DB_USER'),
+                    password=config('MYSQL_DB_PASS'),
+                    host=config('MYSQL_DB_HOST'),
+                    database=q.db_name)
+                for m in metrics:
+                    for col in cls.get_db_table(cls, metric=m):
+                        if m in cls.METRICS_CRM:
+                            ## breakpoint()
                             if ('crm' in q.db_name) and (q.query_type=='2'):
-                                if m in ['deals']:
-                                    stmt = "SELECT  COUNT({}) as {} FROM {} WHERE products_id like '{}'".format(
-                                    col, 
-                                    dict(cls.METRICS)[m],
-                                    '_'.join([q.company_source, 'deals']),
-                                    product_id
-                                )
+                                stmt = "SHOW COLUMNS from {} LIKE '{}'".format(
+                                '_'.join([q.company_source, q.datasource]),
+                                col,
+                            )
+                            else: # tabela nao eh crm
+                                continue
+                            #     stmt = "SELECT SUM({}) as {} FROM {} WHERE products_id like '{}'".format(
+                            #     col,
+                            # dict(cls.METRICS)[m],
+                            # '_'.join([q.company_source, 'deals']),
+                            # )
+                        else:    
+                            stmt = "SHOW COLUMNS FROM {} LIKE '{}'".format(
+                                '_'.join([q.company_source, q.datasource]),
+                                col
+                            )
+                        # if column exists
+                        with cnx.cursor(buffered=True) as cursor:  
+                            cursor.execute(stmt)
+                            row = cursor.fetchone()
+                            cursor.close()
+                            if row:
+                                if ('crm' in q.db_name) and (q.query_type=='2'):
+                                    if m in ['deals']:
+                                        stmt = "SELECT  COUNT({}) as {} FROM {} WHERE products_id like '{}'".format(
+                                        col, 
+                                        dict(cls.METRICS)[m],
+                                        '_'.join([q.company_source, 'deals']),
+                                        product_id
+                                    )
+                                    else:
+                                        stmt = "SELECT  SUM({}) as {} FROM {} WHERE products_id like '{}'".format(
+                                            col, 
+                                            dict(cls.METRICS)[m],
+                                            '_'.join([q.company_source, q.datasource]),
+                                            product_id
+                                        )
                                 else:
-                                    stmt = "SELECT  SUM({}) as {} FROM {} WHERE products_id like '{}'".format(
+                                    # breakpoint()
+                                    stmt = "SELECT  CAST(SUM({}) AS SIGNED) as '{}' FROM {} WHERE id_clorus like '{}'".format(
                                         col, 
                                         dict(cls.METRICS)[m],
                                         '_'.join([q.company_source, q.datasource]),
-                                        product_id
+                                        clorus_id
                                     )
-                            else:
-                                stmt = "SELECT  CAST(SUM({}) AS SIGNED) as '{}' FROM {} WHERE id_clorus like '{}'".format(
-                                    col, 
-                                    dict(cls.METRICS)[m],
-                                    '_'.join([q.company_source, q.datasource]),
-                                    clorus_id
-                                )
-                            with cnx.cursor(buffered=True, dictionary=True) as cursor:  
-                                cursor.execute(stmt)
-                                row = cursor.fetchone()
-                                col_name = dict(cls.METRICS)[m]
-                                if col_name in metrics_summary.keys():
-                                    if ('crm' in q.db_name) and (q.query_type=='2'):
-                                        metrics_summary[col_name] = decimal.Decimal(metrics_summary[col_name])+row[col_name]
+                                with cnx.cursor(buffered=True, dictionary=True) as cursor:  
+                                    cursor.execute(stmt)
+                                    row = cursor.fetchone()
+                                    col_name = dict(cls.METRICS)[m]
+                                    if col_name in metrics_summary.keys():
+                                        if ('crm' in q.db_name) and (q.query_type=='2'):
+                                            metrics_summary[col_name] = decimal.Decimal(metrics_summary[col_name])+row[col_name]
+                                        else:
+                                            metrics_summary[col_name] = metrics_summary[col_name]+row[col_name]
                                     else:
-                                        metrics_summary[col_name] = metrics_summary[col_name]+row[col_name]
-                                else:
-                                    metrics_summary.update(row)
-                                cursor.close()
-            cnx.close()
-        ## breakpoint()
+                                        metrics_summary.update(row)
+                                    cursor.close()
+                cnx.close()
+        # breakpoint()
         if metric in cls.METRICS_DB_ANNOTATE:
-            # breakpoint()
             return cls.calc_annotate(
                 metric,
                 dict(cls.METRICS)[metric],
-                metrics_summary[dict(cls.METRICS)[metrics[0]]], 
-                metrics_summary[dict(cls.METRICS)[metrics[1]]]
+                *metrics_summary.values()
+                # metrics_summary[dict(cls.METRICS)[metrics[0]]], 
+                # metrics_summary[dict(cls.METRICS)[metrics[1]]]
                 )
         return metrics_summary
 
@@ -404,7 +438,7 @@ class Campaign(models.Model):
     campaign_details = models.ManyToManyField(CampaignMetaDetail)
     custom_query = models.ForeignKey(CustomQuery, on_delete=models.CASCADE, verbose_name="Query da campanha em raw_data")
     # comercial = models.ForeignKey(Comercial, on_delete=models.CASCADE, null=True)
-    # company = models.ForeignKey(Company, on_delete=models.CASCADE, default=1)
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, default=1)
     budget = models.CharField(max_length=255, default='', verbose_name="Valor Investido")
     date_created = models.DateTimeField(auto_now_add=True)
     last_change = models.DateTimeField(blank=True, null=True)
