@@ -26,19 +26,18 @@ class ComercialAPIView(generics.GenericAPIView,
 
     def put(self, request, *args, **kwargs):
         # TODO
-        id = request.data.pop('id')
-        if not id:
+        if not request.data.get('id',''):
             return Response({"detail":"Insira o campo 'id'."}, status=status.HTTP_400_BAD_REQUEST)
+        id = request.data.pop('id')
         try:
             # obj = Comercial.objects.filter(pk=id).update(**request.data)
             obj = Comercial.objects.filter(pk=id)
             obj.update(**request.data)
             serializer = ComercialSerializer(obj, many=True)
-            # serializer.is_valid()
         except Comercial.DoesNotExist:
             return Response({'detail': f'Comercial com id {id} não existe.'},status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
-            return Response({'error': str(e),'detail':'Não encontramos o "id" do campo especificado'},
+            return Response({'error': str(e),'detail':'Não encontramos o item do campo especificado'},
                  status=status.HTTP_404_NOT_FOUND)
         else:
             return Response(serializer.data, status=status.HTTP_206_PARTIAL_CONTENT)

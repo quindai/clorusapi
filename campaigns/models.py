@@ -169,7 +169,8 @@ class MainMetrics():
                         cls.calc_metric(m, queries, clorus_id, product_id, campaigns, cnx)
                     )
         elif metric in cls.METRICS_RD:
-            # breakpoint()
+            breakpoint()
+            #TODO Trabalhando aqui
             metrics = ['email_' + x for x in cls.calc_catering(metric)]
             for q in queries:
                 if 'emails' in q.datasource:
@@ -178,7 +179,27 @@ class MainMetrics():
                         password=config('MYSQL_DB_PASS'),
                         host=config('MYSQL_DB_HOST'),
                         database=q.db_name)
-            pass
+                    # stmt = "SELECT SUM({}) FROM {} WHERE {} LIKE '%{}%'"
+                    stmt = "SELECT SUM(`{}`) as {}, SUM(`{}`) as {} FROM {}".format(
+                        'Leads selecionados',
+                        'Enviados',
+                        'Entregues',
+                        'Entrega',
+                        '_'.join([q.company_source, q.datasource]),
+                    )
+
+                    with cnx.cursor(buffered=True, dictionary=True) as cursor:  
+                        cursor.execute(stmt)
+                        row = cursor.fetchone()
+                        # col_name = dict(cls.METRICS)[m]
+                        col_name = ['Enviados','Entregue']
+                        if set(col_name).issubset(metrics_summary.keys()):
+                                metrics_summary[col_name[0]] = metrics_summary[col_name[0]]+row[col_name[0]]
+                                metrics_summary[col_name[1]] = metrics_summary[col_name[1]]+row[col_name[1]]
+                        else:
+                            metrics_summary.update(row)
+                        cursor.close()
+            
         else:
             for q in queries:
                 # if not cnx:
@@ -192,7 +213,7 @@ class MainMetrics():
                         if m in cls.METRICS_CRM:
                             ## breakpoint()
                             if ('crm' in q.db_name) and (q.query_type=='2'):
-                                stmt = "SHOW COLUMNS from {} LIKE '{}'".format(
+                                stmt = "SHOW COLUMNS FROM {} LIKE '{}'".format(
                                 '_'.join([q.company_source, q.datasource]),
                                 col,
                             )
