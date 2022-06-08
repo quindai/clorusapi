@@ -184,7 +184,7 @@ class CustomQuery(models.Model):
                 rows = cursor.fetchall()
                 cursor.close()
         except mysql.connector.errors.ProgrammingError as error:
-            raise ValidationError(error)
+            raise ValidationError({'error':error,'source':self.db_name})
         except Exception as e:
             raise DatabaseError(
                     _('Ocorreu o erro %(e)s.'),
