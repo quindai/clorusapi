@@ -65,9 +65,11 @@ class CampaignRawDataView(APIView, LimitOffsetPagination):
 
     def get(self, request, *args, **kwargs):
         custom_query = self.get_object(request.user)
+        # breakpoint()
         campanhas = []
         try:
             for current in custom_query:
+                breakpoint()
                 query_returned = current.query(group_by=True)
                 if current.data_columns and len(current.data_columns.strip())>0:
                     clorus_id = current.data_columns.split(',')[0].strip()

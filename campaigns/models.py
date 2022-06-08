@@ -169,8 +169,7 @@ class MainMetrics():
                         cls.calc_metric(m, queries, clorus_id, product_id, campaigns, cnx)
                     )
         elif metric in cls.METRICS_RD:
-            breakpoint()
-            #TODO Trabalhando aqui
+            # breakpoint()
             metrics = ['email_' + x for x in cls.calc_catering(metric)]
             for q in queries:
                 if 'emails' in q.datasource:
@@ -180,11 +179,19 @@ class MainMetrics():
                         host=config('MYSQL_DB_HOST'),
                         database=q.db_name)
                     # stmt = "SELECT SUM({}) FROM {} WHERE {} LIKE '%{}%'"
-                    stmt = "SELECT SUM(`{}`) as {}, SUM(`{}`) as {} FROM {}".format(
+                    stmt = """SELECT SUM(`{}`) as {}, 
+                                SUM(`{}`) as {}, 
+                                SUM(`{}`) as {}, 
+                                SUM(`{}`) as {} 
+                                FROM {}""".format(
                         'Leads selecionados',
                         'Enviados',
                         'Entregues',
                         'Entrega',
+                        'Aberturas (unicas)',
+                        'Abertos',
+                        'Cliques (unicos)',
+                        'Clicados',
                         '_'.join([q.company_source, q.datasource]),
                     )
 
@@ -192,12 +199,17 @@ class MainMetrics():
                         cursor.execute(stmt)
                         row = cursor.fetchone()
                         # col_name = dict(cls.METRICS)[m]
-                        col_name = ['Enviados','Entregue']
+                        col_name = ['Enviados','Entrega','Abertos','Clicados']
                         if set(col_name).issubset(metrics_summary.keys()):
                                 metrics_summary[col_name[0]] = metrics_summary[col_name[0]]+row[col_name[0]]
                                 metrics_summary[col_name[1]] = metrics_summary[col_name[1]]+row[col_name[1]]
+                                metrics_summary[col_name[2]] = metrics_summary[col_name[2]]+row[col_name[2]]
+                                metrics_summary[col_name[3]] = metrics_summary[col_name[3]]+row[col_name[3]]
                         else:
                             metrics_summary.update(row)
+                        metrics_summary['Taxa. Entrega'] = metrics_summary['Entrega']/metrics_summary['Enviados']
+                        metrics_summary['Taxa de Abertos'] = metrics_summary['Abertos']/metrics_summary['Entrega']
+                        metrics_summary['Taxa Clicados'] = metrics_summary['Clicados']/metrics_summary['Entrega']
                         cursor.close()
             
         else:
@@ -522,3 +534,19 @@ class Optimization(models.Model):
 
     class Meta:
         ordering = ['date_created']
+
+class Criativos(models.Model):
+    TYPE_OF = [
+        ('1','Display'),
+        ('2','Vídeo'),
+        ('3','Áudio'),
+        ('4','Pesquisa'),
+        ('5','Landing Page'),
+    ]
+    name = models.CharField(max_length=255)
+    criativo_type = models.CharField(max_length=2,choices=TYPE_OF)
+    goal = models.CharField(max_length=255)
+    channel = models.CharField(max_length=1)
+    format = models.CharField(max_length=1)
+    #metrics
+    ## alcance, ctr, cliques, cpc, cpl, leads, investimento
