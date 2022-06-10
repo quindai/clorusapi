@@ -6,10 +6,10 @@ from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.exceptions import NotFound
 
 from accounts.models.apiuser import APIUser
-from campaigns.models import Campaign, MainMetrics, Optimization
+from campaigns.models import Campaign, Criativos, MainMetrics, Optimization
 from campaigns.serializers import (
     CampaignOptimizationGETSerializer, CampaignOptimizationSerializer, 
-    CampaignPostSerializer, CampaignSerializer)
+    CampaignPostSerializer, CampaignSerializer, CriativoSerializer)
 from company.models import CustomQuery
 from clorusapi.permissions.basic import BasicPermission
 import re
@@ -77,7 +77,7 @@ class CampaignRawDataView(APIView, LimitOffsetPagination):
                             'clorus_id':re.findall(r'#\d+',dict[clorus_id])[0],
                             'campaign_name': dict[clorus_id].split(re.findall(r'#\d+',dict[clorus_id])[0])[1].strip(),
                             'custom_query': current.pk,
-                            # **dict,
+                            **dict,
                         }, query_returned))
                     )
                 else: 
@@ -99,6 +99,22 @@ class CampaignOptimizationView(generics.GenericAPIView,
 
     def post(self, request, *args, **kwargs):
         return self.create(request, *args, **kwargs)
+
+class CriativosView(generics.GenericAPIView,
+                        mixins.UpdateModelMixin,
+                        mixins.ListModelMixin):
+    serializer_class = CriativoSerializer
+    queryset = Criativos.objects.all()
+    permission_classes = (permissions.IsAuthenticated, BasicPermission)
+
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
+
+    def put(self, request, *args, **kwargs):
+        return self.update(request, *args, **kwargs)
+
+    # def post(self, request, *args, **kwargs):
+    #     return self.create(request, *args, **kwargs)
 
 class CampaignOptimizationGETView(generics.GenericAPIView,
                         mixins.ListModelMixin):

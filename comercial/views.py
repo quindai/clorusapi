@@ -25,7 +25,6 @@ class ComercialAPIView(generics.GenericAPIView,
         return self.create(request, *args, **kwargs)
 
     def put(self, request, *args, **kwargs):
-        # TODO
         if not request.data.get('id',''):
             return Response({"detail":"Insira o campo 'id'."}, status=status.HTTP_400_BAD_REQUEST)
         id = request.data.pop('id')

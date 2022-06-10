@@ -111,7 +111,9 @@ class MainMetrics():
         return dict(cls.METRICS_DB)[kwargs['metric']]
 
     def calc_annotate(metric, human_metric, *args):
-        # breakpoint()
+        breakpoint()
+        # args[1] = 0 if args[1]==None else args[1]
+        # args[0] = 0 if args[0]==None else args[0]
         if args[1] == 0:
             return {human_metric: args[1]}
         try:
@@ -536,17 +538,31 @@ class Optimization(models.Model):
         ordering = ['date_created']
 
 class Criativos(models.Model):
-    TYPE_OF = [
-        ('1','Display'),
-        ('2','Vídeo'),
-        ('3','Áudio'),
-        ('4','Pesquisa'),
-        ('5','Landing Page'),
+    # TYPE_OF = [
+    #     ('1','Display'),
+    #     ('2','Vídeo'),
+    #     ('3','Áudio'),
+    #     ('4','Pesquisa'),
+    #     ('5','Landing Page'),
+    # ]
+
+    GOAL_SELECT = [
+        ('1','Tráfego'),
+        ('2','Reconhecimento de marca'),
+        ('3','Engajamento'),
+        ('4','Geração de lead'),
+        ('5','Vendas'),
     ]
-    name = models.CharField(max_length=255)
-    criativo_type = models.CharField(max_length=2,choices=TYPE_OF)
-    goal = models.CharField(max_length=255)
-    channel = models.CharField(max_length=1)
-    format = models.CharField(max_length=1)
+    campaign = models.ForeignKey(Campaign, on_delete=models.CASCADE)
+    ad_group_id = models.CharField(max_length=100)
+    ad_id = models.CharField(max_length=100)
+    description = models.CharField(max_length=255)
+    tipo_midia = models.CharField(max_length=100, null=True, blank=True)
+    # name = models.CharField(max_length=255)
+    # criativo_type = models.CharField(max_length=2,choices=TYPE_OF)
+    goal = models.CharField(max_length=2, default='', choices=GOAL_SELECT, 
+                            verbose_name="Objetivo da Campanha", help_text='')
+    channel = models.CharField(max_length=100)
+    format = models.CharField(max_length=100)
     #metrics
     ## alcance, ctr, cliques, cpc, cpl, leads, investimento

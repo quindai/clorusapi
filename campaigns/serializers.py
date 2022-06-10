@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 from accounts.models.apiuser import APIUser
 
-from .models import Campaign, CampaignMetaDetail, Optimization
+from .models import Campaign, CampaignMetaDetail, Criativos, Optimization
 from company.serializers import CompanySerializer
 
 class CampaignMetaDetailSerializer(serializers.ModelSerializer):
@@ -65,3 +65,8 @@ class CampaignOptimizationGETSerializer(serializers.ModelSerializer):
 
     def get_result_type(self, obj):
         return dict(Optimization.DETAIL_RESULT)[obj.result_type]
+
+class CriativoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Criativos
+        fields = '__all__'
