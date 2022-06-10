@@ -72,7 +72,7 @@ class ComercialDetailsView(APIView, LimitOffsetPagination):
         try:
             for current in custom_query:
                 # query_returned = current.query()
-                crms.extend(current.query())
+                crms.extend([{'custom_query':current.pk, 'data':current.query()}])
             response = self.paginate_queryset(crms, request, view=self)
         except Exception as e:
             return Response({'error':str(e)}, status=status.HTTP_404_NOT_FOUND)

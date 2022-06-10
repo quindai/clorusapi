@@ -1,6 +1,9 @@
 from rest_framework import serializers
 
+from accounts.models.apiuser import APIUser
+
 from .models import Campaign, CampaignMetaDetail, Optimization
+from company.serializers import CompanySerializer
 
 class CampaignMetaDetailSerializer(serializers.ModelSerializer):
     class Meta:
@@ -30,13 +33,19 @@ class CampaignSerializer(serializers.ModelSerializer):
 class CampaignPostSerializer(serializers.ModelSerializer):
     last_change = serializers.DateTimeField(read_only=True)
     campaign_details = CampaignMetaDetailSerializer(many=True)
+    company = CompanySerializer(read_only=True)
     class Meta:
         model = Campaign
         fields = '__all__'
 
     def create(self, validated_data):
         campaign_details = validated_data.pop('campaign_details')
+
+        active_company =  APIUser.objects.get(user=self.context['request'].user).active_company
+        validated_data['company'] = active_company
         campaign_instance = Campaign.objects.create(**validated_data)
+        
+        # campaign_instance.company = active_company
         obj = [CampaignMetaDetail.objects.create(**details) for details in campaign_details]
         campaign_instance.campaign_details.add(*obj)
         return campaign_instance
