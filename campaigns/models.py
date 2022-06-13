@@ -112,7 +112,7 @@ class MainMetrics():
         return dict(cls.METRICS_DB)[kwargs['metric']]
 
     def calc_annotate(metric, human_metric, *args):
-        breakpoint()
+        # breakpoint()
         # args[1] = 0 if args[1]==None else args[1]
         # args[0] = 0 if args[0]==None else args[0]
         if args[1] == 0:
@@ -377,6 +377,8 @@ class CampaignManager(models.Manager):
                         with cnx.cursor(buffered=True, dictionary=True) as cursor:  
                             cursor.execute(stmt)
                             row = cursor.fetchone()
+
+                            # breakpoint()
  
                             metrics_summary['Leads'] = metrics_summary['Leads']+row['Leads']
                     # else:
@@ -416,37 +418,63 @@ class CampaignManager(models.Manager):
                     row = cursor.fetchone()
                     cursor.close()
                 if row:
-                    stmt = "SELECT SUM(price) as {} FROM {} WHERE products_id like '{}'".format(
-                        'Revenue',
-                        '_'.join([q.company_source, 'deals']),
-                        kwargs['products'][index].id_crm
-                    )
-                    
-                    # TODO
-                    # close_date(crm) < expiration_date(campaign)
-                    stmt_deals = "SELECT COUNT(id) as DEALS_COUNT FROM {} WHERE products_id like '{}'".format(
+                    stmt = "SELECT json_unquote(products_id) as products_id,json_unquote(products_price) as products_price FROM {} WHERE JSON_CONTAINS(products_id, '{}', '$')".format(
                         '_'.join([q.company_source, 'deals']),
                         kwargs['products'][index].id_crm
                     )
                     with cnx1.cursor(buffered=True, dictionary=True) as cursor:  
                         cursor.execute(stmt)
-                        row = cursor.fetchone()
-                        metrics_summary['Revenue'] = decimal.Decimal(metrics_summary['Revenue'])+row['Revenue']
+                        rows = cursor.fetchall()
                         cursor.close()
-                    with cnx1.cursor(buffered=True, dictionary=True) as cursor:
-                        cursor.execute(stmt_deals)
-                        row = cursor.fetchone()
-                        deals = deals+row['DEALS_COUNT']
-                        cursor.close()
-                    row = None
-                cnx1.close()
+                    # breakpoint()
+                    sum_prices = 0
+                    for row in rows:
+                        index = json.loads(row['products_id']).index(int(kwargs['products'][index].id_crm))
+                    # tmp_products = json.loads(row['products_id'])
+                        sum_prices = sum_prices + json.loads(row['products_price'])[index]
+
+
+                    # stmt = "SELECT NULLIF(0,SUM(price)) as {} FROM {} WHERE products_id like '{}'".format(
+                    #     'Revenue',
+                    #     '_'.join([q.company_source, 'deals']),
+                    #     kwargs['products'][index].id_crm
+                    # )
+                    
+                    # TODO
+                    # close_date(crm) < expiration_date(campaign)
+                    # stmt_deals = "SELECT COUNT(id) as DEALS_COUNT FROM {} WHERE products_id like '{}'".format(
+                    #     '_'.join([q.company_source, 'deals']),
+                    #     kwargs['products'][index].id_crm
+                    # )
+                    # with cnx1.cursor(buffered=True, dictionary=True) as cursor:  
+                    #     cursor.execute(stmt)
+                    #     row = cursor.fetchone()
+                    # metrics_summary['Revenue'] = decimal.Decimal(metrics_summary['Revenue'])+row['Revenue']
+                    metrics_summary['Revenue'] = metrics_summary['Revenue']+sum_prices
+                        # cursor.close()
+                    # with cnx1.cursor(buffered=True, dictionary=True) as cursor:
+                    #     cursor.execute(stmt_deals)
+                    #     row = cursor.fetchone()
+                    # deals = deals+row['DEALS_COUNT']
+                    deals = deals+len(rows)
+                        # cursor.close()
+                    rows = None
+                # cnx1.close()
+        # breakpoint()
         spend = list(MainMetrics.calc_metric('spend', kwargs['queries'], kwargs['id_clorus']).values())[0]
         # breakpoint()
         # calc ROAS
-        metrics_summary['ROAS'] = (metrics_summary['Revenue'] - decimal.Decimal(spend))/decimal.Decimal(spend)
+
+        if spend == 0:
+            metrics_summary['ROAS'] = 0
+        else:
+            metrics_summary['ROAS'] = (metrics_summary['Revenue'] - spend)/spend
         
         # elif m == "CAC":
-        metrics_summary['CAC'] = spend/deals
+        if deals == 0:
+            metrics_summary['CAC'] = 0
+        else:
+            metrics_summary['CAC'] = spend/deals
         return json.dumps(metrics_summary, cls=DjangoJSONEncoder)
 
     def get_queryset_with_status(self, *args, **kwargs):
