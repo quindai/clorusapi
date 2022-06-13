@@ -1,5 +1,6 @@
 import datetime, json
 from decouple import config
+from itertools import islice
 from django.db import models
 from django.dispatch import receiver
 from django.db.models.signals import post_save
@@ -515,27 +516,6 @@ class Campaign(models.Model):
     class Meta:
         ordering = ['id']
 
-@receiver(post_save, sender=Campaign)
-def pre_save_handler(sender, **kwargs):
-#     """after saving Campaign, update last_change"""
-    instance = kwargs.get('instance')
-    Campaign.objects.filter(pk=instance.pk).update(last_change = timezone.now())
-
-class Optimization(models.Model):
-    DETAIL_RESULT = [
-        ('1','Negativo'),
-        ('2','Positivo'),
-        ('3','Neutro')
-    ]
-    campaign = models.ForeignKey(Campaign, on_delete=models.CASCADE)
-    date_created = models.DateField(auto_now_add=True, db_index=True)
-    description = models.TextField()
-    hypothesis = models.TextField()
-    result = models.TextField()
-    result_type = models.CharField(max_length=2, choices=DETAIL_RESULT)
-
-    class Meta:
-        ordering = ['date_created']
 
 class Criativos(models.Model):
     # TYPE_OF = [
@@ -560,9 +540,72 @@ class Criativos(models.Model):
     tipo_midia = models.CharField(max_length=100, null=True, blank=True)
     # name = models.CharField(max_length=255)
     # criativo_type = models.CharField(max_length=2,choices=TYPE_OF)
-    goal = models.CharField(max_length=2, default='', choices=GOAL_SELECT, 
-                            verbose_name="Objetivo da Campanha", help_text='')
-    channel = models.CharField(max_length=100)
-    format = models.CharField(max_length=100)
+    # goal = models.CharField(max_length=2, default='', choices=GOAL_SELECT, 
+                            # verbose_name="Objetivo da Campanha", help_text='')
+    goal = models.CharField(max_length=100, null=True, blank=True)
+    channel = models.CharField(max_length=100, null=True, blank=True)
+    format = models.CharField(max_length=100, null=True, blank=True)
     #metrics
     ## alcance, ctr, cliques, cpc, cpl, leads, investimento
+
+def save_criativos(instance):
+    clorus_id = instance.clorus_id
+    query = instance.custom_query
+    cnx=mysql.connector.connect(
+        user=config('MYSQL_DB_USER'),
+        password=config('MYSQL_DB_PASS'),
+        host=config('MYSQL_DB_HOST'),
+        database=query.db_name)
+
+    stmt = "SELECT * FROM {} WHERE Campaign LIKE '%{}%' GROUP BY `Ad ID`".format(
+        '_'.join([query.company_source, query.datasource]),
+        clorus_id,
+    )
+
+    with cnx.cursor(buffered=True, dictionary=True) as cursor:  
+        cursor.execute(stmt)
+        rows = cursor.fetchall()
+        cursor.close()
+    cnx.close()
+
+    criativos = (Criativos(
+        ad_group_id= row['Ad group ID'],
+        ad_id= row['Ad ID'],
+        description= row['Description'],
+        tipo_midia= row['tipo_midia'],
+        channel= row['channel'],
+        format= row['format'],
+        campaign= instance
+    ) for row in rows)
+
+    batch_size = 100
+    while True:
+        batch = list(islice(criativos, batch_size))
+        if not batch:
+            break
+        Criativos.objects.bulk_create(batch, batch_size)
+ 
+
+@receiver(post_save, sender=Campaign)
+def pre_save_handler(sender, **kwargs):
+#     """after saving Campaign, update last_change"""
+    instance = kwargs.get('instance')
+    Campaign.objects.filter(pk=instance.pk).update(last_change = timezone.now())
+    save_criativos(instance)
+
+class Optimization(models.Model):
+    DETAIL_RESULT = [
+        ('1','Negativo'),
+        ('2','Positivo'),
+        ('3','Neutro')
+    ]
+    campaign = models.ForeignKey(Campaign, on_delete=models.CASCADE)
+    date_created = models.DateField(auto_now_add=True, db_index=True)
+    description = models.TextField()
+    hypothesis = models.TextField()
+    result = models.TextField()
+    result_type = models.CharField(max_length=2, choices=DETAIL_RESULT)
+
+    class Meta:
+        ordering = ['date_created']
+
