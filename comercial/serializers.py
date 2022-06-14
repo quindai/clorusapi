@@ -1,7 +1,9 @@
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError, NotFound
+from accounts.models.apiuser import APIUser
 
 from company.models import Company
+from company.serializers import CompanySerializer
 from .models import Comercial, GoalPlanner, Product
 from django.utils import timezone
 
@@ -30,6 +32,7 @@ class ComercialSerializer(serializers.ModelSerializer):
     _begin_date = serializers.DateField(read_only=True)
     goal = GoalPlannerSerializer()
     history = HistoricalRecordField(read_only=True)
+    company = CompanySerializer(read_only=True)
     # date_created = serializers.DateField(read_only=True)
     class Meta:
         model = Comercial
@@ -42,16 +45,20 @@ class ComercialSerializer(serializers.ModelSerializer):
             raise ParseError('Comercial segmentado, precisa ter pelo menos 1 produto.')
         return super().validate(attrs)
 
-    def create(request, *args, **kwargs):
-        source = request.data
-        goal = source.pop('goal')
+    def create(self, validated_data):
+        # breakpoint()
+        # source = self.data
+        goal = validated_data.pop('goal')
+        active_company =  APIUser.objects.get(user=self.context['request'].user).active_company
+        validated_data['company'] = active_company
         new_goal = GoalPlanner.objects.create()
         for p in goal['product']:
             # breakpoint()
             products = Product(date_created=timezone.localtime(),**p)
             products.save()
             new_goal.product.add(products)
-        comercial = Comercial(company=Company.objects.get(pk=source.pop('company')), **source)
+        # comercial = Comercial(company=Company.objects.get(pk=source.pop('company')), **source)
+        comercial = Comercial(**validated_data)
         comercial.goal = new_goal
         comercial.save()
         return comercial
