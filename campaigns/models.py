@@ -545,15 +545,30 @@ class Campaign(models.Model):
         ordering = ['id']
 
 
-class Criativos(models.Model):
-    # TYPE_OF = [
-    #     ('1','Display'),
-    #     ('2','Vídeo'),
-    #     ('3','Áudio'),
-    #     ('4','Pesquisa'),
-    #     ('5','Landing Page'),
-    # ]
+class CriativoManager(models.Manager):
+    def get_criativo_metrics(self, **kwargs):
+        metrics_summary = {
+            'Leads': 0,
+            'Revenue': 0,
+            'ROAS': 0,
+            'CAC': 0
+        }
+        # breakpoint()
+        # stmt = "SELECT * FROM {} WHERE Campaign LIKE '%{}%' GROUP BY `Ad ID`".format(
+        # '_'.join([query.company_source, query.datasource]),
+        # clorus_id,
+        # )
+        return json.dumps(metrics_summary, cls=DjangoJSONEncoder)
 
+    def get_queryset(self, *args, **kwargs):
+        return super().get_queryset(*args, **kwargs).annotate(
+            metrics_summary = models.Value(
+                self.get_criativo_metrics(
+                metrics=['range','ctr','click','cpc','cpl','lead','investment']
+            ),)
+        )
+
+class Criativos(models.Model):
     GOAL_SELECT = [
         ('1','Tráfego'),
         ('2','Reconhecimento de marca'),
@@ -566,15 +581,17 @@ class Criativos(models.Model):
     ad_id = models.CharField(max_length=100)
     description = models.CharField(max_length=255)
     tipo_midia = models.CharField(max_length=100, null=True, blank=True)
-    # name = models.CharField(max_length=255)
-    # criativo_type = models.CharField(max_length=2,choices=TYPE_OF)
-    # goal = models.CharField(max_length=2, default='', choices=GOAL_SELECT, 
-                            # verbose_name="Objetivo da Campanha", help_text='')
+    
     goal = models.CharField(max_length=100, null=True, blank=True)
     channel = models.CharField(max_length=100, null=True, blank=True)
     format = models.CharField(max_length=100, null=True, blank=True)
     #metrics
     ## alcance, ctr, cliques, cpc, cpl, leads, investimento
+
+    objects = CriativoManager()
+
+    class Meta:
+        ordering = ['id']
 
 def save_criativos(instance):
     clorus_id = instance.clorus_id

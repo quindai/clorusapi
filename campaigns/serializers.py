@@ -67,6 +67,8 @@ class CampaignOptimizationGETSerializer(serializers.ModelSerializer):
         return dict(Optimization.DETAIL_RESULT)[obj.result_type]
 
 class CriativoSerializer(serializers.ModelSerializer):
+    metrics_summary = serializers.CharField(read_only=True)
     class Meta:
         model = Criativos
         fields = '__all__'
+        #fields = ('campaign', 'ad_group_id', 'ad_id', 'description', 'tipo_midia', 'goal', 'channel', 'format','metrics_summary')
