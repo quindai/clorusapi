@@ -18,6 +18,14 @@ class ComercialAPIView(generics.GenericAPIView,
     queryset = Comercial.objects.all()
     permission_classes = [permissions.IsAuthenticated, BasicPermission]
 
+    def get_queryset(self):
+        return (
+            super()
+            .get_queryset() 
+            .filter(company=
+                APIUser.objects.get(user=self.request.user).active_company)
+        )
+
     def get(self, request, *args, **kwargs):
         return self.list(request, *args, **kwargs)
 

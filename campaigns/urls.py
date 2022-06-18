@@ -7,5 +7,5 @@ urlpatterns = [
     path('raw_data/', CampaignRawDataView.as_view(), name='campaign_raw_data'), 
     path('optimization/', CampaignOptimizationView.as_view(), name='campaign_opt'), 
     path('optimization/<campaign_id>/', CampaignOptimizationGETView.as_view(), name='campaign_opt_save'), 
-    path('criativos/', CriativosView.as_view(), name='criativos'),
+    path('criativos/<campaign_id>', CriativosView.as_view(), name='criativos'),
 ]

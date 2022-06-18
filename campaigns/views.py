@@ -22,7 +22,7 @@ class CampaignView(APIView, LimitOffsetPagination):
         try:
             return Campaign.objects.get_queryset_with_status(user)
         except Campaign.DoesNotExist:
-            return Response({'error':'Não campanhas cadastrada.'},
+            return Response({'error':'Não possui campanhas cadastrada.'},
                         status=status.HTTP_404_NOT_FOUND)
 
     def get(self, request, *args, **kwargs):
@@ -102,12 +102,39 @@ class CampaignOptimizationView(generics.GenericAPIView,
 
 class CriativosView(generics.GenericAPIView,
                         mixins.UpdateModelMixin,
+                        mixins.RetrieveModelMixin,
                         mixins.ListModelMixin):
     serializer_class = CriativoSerializer
     queryset = Criativos.objects.all()
     permission_classes = (permissions.IsAuthenticated, BasicPermission)
+    lookup_field = 'campaign_id'
+
+    def get_queryset(self):
+        # breakpoint()
+        # original qs
+        qs = super().get_queryset() 
+        # filter by a variable captured from url, for example
+        # return (qs
+        #         .filter(campaign__pk=self.kwargs['campaign_id'])
+        #         .annotate(
+        #             metrics_summary = 
+        #                 MainMetrics.get_criativo_metrics(
+        #                     **self.kwargs,
+                            
+        #                     metrics=['range','ctr','click','cpc','cpl','lead','investment']
+        #                 ),
+        #         ))
+        return (MainMetrics.get_criativo_metrics(
+                            **self.kwargs,
+                            criativos=qs.filter(campaign__pk=self.kwargs['campaign_id']),
+                            metrics=['range','ctr','clicks','cpc','cpl','leads','invested']
+                        )                                 
+                )
+        # return qs.filter(name__startswith=self.kwargs['name'])
 
     def get(self, request, *args, **kwargs):
+        # breakpoint()
+        # return self.retrieve(request, *args, **kwargs)
         return self.list(request, *args, **kwargs)
 
     def put(self, request, *args, **kwargs):

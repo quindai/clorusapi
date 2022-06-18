@@ -34,7 +34,7 @@ class MainMetrics():
         ('views_50','50% Views de Vídeo/Áudio'),
         ('views_75','75% Views de Vídeo/Áudio'),
         ('views_100','100% Views de Vídeo/Áudio'),
-        ('10','Conversões'),
+        # ('10','Conversões'),
         ('ctr','CTR - Taxa de Cliques'),
         ('cpv','CPV - Custo por View'),
         ('cpc','CPC - Custo por Clique'),
@@ -44,7 +44,7 @@ class MainMetrics():
         ('revenue','Receita'),
         ('spend','Custo (Spend ou Investido)'),
         ('leads','Leads'),
-        ('invested','Investimento / Investido'),
+        # ('invested','Investimento / Investido'),
         ('roas','ROAS'),
         ('cac','CAC - Custo de Aquisição de Cliente'),
         ('budget','Verba'),
@@ -125,7 +125,7 @@ class MainMetrics():
                 'cpl': {human_metric: args[0]/args[1]},
                 'roas': {human_metric: (args[1] - args[0])/args[0] },
                 'cac': {human_metric: args[0]/args[1]},
-                'balance': {human_metric: args[0]-args[1]},
+                'balance': {human_metric: 0 if args[0]-args[1] < 0 else args[0]-args[1]},
                 'invested': {human_metric: sum(args)}
             }.get(metric)
         except Exception as e:
@@ -296,6 +296,58 @@ class MainMetrics():
                 # metrics_summary[dict(cls.METRICS)[metrics[1]]]
                 )
         return metrics_summary
+
+    @classmethod
+    def get_criativo_metrics(cls, **kwargs):
+        # breakpoint()
+        # inicializa todas as metricas com valor zero
+        metrics_summary = {dict(cls.METRICS)[x]:0 for x in kwargs['metrics']}
+        campaign = Campaign.objects.filter(pk=kwargs['campaign_id'])
+        novo = kwargs['criativos']
+        if campaign.exists():
+            q = campaign[0].custom_query
+            cnx=mysql.connector.connect(
+                user=config('MYSQL_DB_USER'),
+                password=config('MYSQL_DB_PASS'),
+                host=config('MYSQL_DB_HOST'),
+                database=q.db_name)
+            for index, criativo in enumerate(kwargs['criativos']):
+                stmt = "SELECT CAST(SUM(Clicks) as SIGNED) as {} FROM {} WHERE Campaign LIKE '%{}%' AND `Ad ID`={}".format(
+                    dict(cls.METRICS)['clicks'],
+                    '_'.join([q.company_source, 'googleads']),
+                    campaign[0].clorus_id,
+                    criativo.ad_id
+                )
+
+                with cnx.cursor(buffered=True, dictionary=True) as cursor:  
+                    cursor.execute(stmt)
+                    row = cursor.fetchone()
+                    col_name = dict(cls.METRICS)['clicks']
+                    if col_name in metrics_summary.keys():
+                        metrics_summary[col_name] = row[col_name]
+                        # else:
+                        #     metrics_summary[col_name] = metrics_summary[col_name]+row[col_name]
+                    else:
+                        metrics_summary.update(row)
+                    cursor.close()
+                    # breakpoint()
+                    #TODO working urgente
+                    # if row:
+                    #     novo=novo.filter(pk=criativo.pk).annotate(
+                    #         metrics_summary = models.Value(
+                    #             json.dumps(metrics_summary, cls=DjangoJSONEncoder)
+                    #         )
+                    #     )
+                
+            cnx.close()
+        
+        # breakpoint()
+        # stmt = "SELECT * FROM {} WHERE Campaign LIKE '%{}%' GROUP BY `Ad ID`".format(
+        # '_'.join([query.company_source, query.datasource]),
+        # clorus_id,
+        # )
+        return kwargs['criativos']
+
 
 class CampaignManager(models.Manager):
     def get_recent_date(self, *args):
@@ -507,6 +559,7 @@ class CampaignManager(models.Manager):
             ))
         )
 
+    
 class CampaignMetaDetail(CommonProduct):
     """ 
     custom_query de produto, para rastreamento da origem desse item
@@ -545,28 +598,15 @@ class Campaign(models.Model):
         ordering = ['id']
 
 
-class CriativoManager(models.Manager):
-    def get_criativo_metrics(self, **kwargs):
-        metrics_summary = {
-            'Leads': 0,
-            'Revenue': 0,
-            'ROAS': 0,
-            'CAC': 0
-        }
-        # breakpoint()
-        # stmt = "SELECT * FROM {} WHERE Campaign LIKE '%{}%' GROUP BY `Ad ID`".format(
-        # '_'.join([query.company_source, query.datasource]),
-        # clorus_id,
-        # )
-        return json.dumps(metrics_summary, cls=DjangoJSONEncoder)
+# class CriativoManager(models.Manager):
+#     pass
+        
 
-    def get_queryset(self, *args, **kwargs):
-        return super().get_queryset(*args, **kwargs).annotate(
-            metrics_summary = models.Value(
-                self.get_criativo_metrics(
-                metrics=['range','ctr','click','cpc','cpl','lead','investment']
-            ),)
-        )
+    # def get_queryset(self, *args, **kwargs):
+    #     breakpoint()
+    #     return super().get_queryset(*args, **kwargs).annotate(
+            
+    #     )
 
 class Criativos(models.Model):
     GOAL_SELECT = [
@@ -582,13 +622,20 @@ class Criativos(models.Model):
     description = models.CharField(max_length=255)
     tipo_midia = models.CharField(max_length=100, null=True, blank=True)
     
-    goal = models.CharField(max_length=100, null=True, blank=True)
+    objective = models.CharField(max_length=100, null=True, blank=True)
     channel = models.CharField(max_length=100, null=True, blank=True)
     format = models.CharField(max_length=100, null=True, blank=True)
+    range_goal = models.IntegerField()
+    ctr_goal = models.FloatField()
+    click_goal = models.IntegerField()
+    cpc_goal = models.FloatField()
+    cpl_goal = models.FloatField()
+    leads_goal = models.FloatField()
+    invested_goal = models.FloatField() # spend
     #metrics
     ## alcance, ctr, cliques, cpc, cpl, leads, investimento
 
-    objects = CriativoManager()
+    # objects = CriativoManager()
 
     class Meta:
         ordering = ['id']
@@ -620,6 +667,8 @@ def save_criativos(instance):
         tipo_midia= row['tipo_midia'],
         channel= row['channel'],
         format= row['format'],
+        objective= row['objective'], # TODO || NULL
+
         campaign= instance
     ) for row in rows)
 
