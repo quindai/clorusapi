@@ -12,6 +12,7 @@ class CampaignMetaDetailSerializer(serializers.ModelSerializer):
 
 class CampaignSerializer(serializers.ModelSerializer):
     status = serializers.CharField()
+    end_date = serializers.DateField()
     metrics_summary = serializers.CharField()
     goal = serializers.SerializerMethodField()
     year = serializers.SerializerMethodField()
@@ -25,7 +26,6 @@ class CampaignSerializer(serializers.ModelSerializer):
         return dict(Campaign.GOAL_SELECT)[obj.goal]
 
     def get_year(self, obj): 
-        # breakpoint()
         return obj.start_date.strftime('%Y')
 
     def get_month(self, obj):
@@ -46,7 +46,6 @@ class CampaignPostSerializer(serializers.ModelSerializer):
         validated_data['company'] = active_company
         campaign_instance = Campaign.objects.create(**validated_data)
         
-        # campaign_instance.company = active_company
         obj = [CampaignMetaDetail.objects.create(**details) for details in campaign_details]
         campaign_instance.campaign_details.add(*obj)
         return campaign_instance

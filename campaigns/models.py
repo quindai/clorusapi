@@ -10,6 +10,8 @@ from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from mysql.connector import errorcode
 import mysql.connector
+import pytz # for time UTC
+import decimal #for decimal field
 
 from comercial.models import Comercial
 from company.models import Company, CustomQuery
@@ -17,7 +19,6 @@ from accounts.models.apiuser import APIUser
 from clorusapi.utils.common import CommonProduct
 
 from rest_framework.exceptions import NotFound
-import decimal #for decimal field
 from django.core.serializers.json import DjangoJSONEncoder
 
 # TODO 
@@ -302,6 +303,7 @@ class MainMetrics():
         # breakpoint()
         # inicializa todas as metricas com valor zero
         metrics_summary = {dict(cls.METRICS)[x]:0 for x in kwargs['metrics']}
+
         campaign = Campaign.objects.filter(pk=kwargs['campaign_id'])
         novo = kwargs['criativos']
         if campaign.exists():
@@ -378,7 +380,7 @@ class CampaignManager(models.Manager):
         except Exception as e:
             raise ValidationError({'error':e, 'detail':f'Clorus ID {args[1]} não encontrado.'})
         else:
-            return retorno
+            return (retorno, temp_date)
         finally:
             cnx.close()
 
@@ -530,15 +532,10 @@ class CampaignManager(models.Manager):
         return json.dumps(metrics_summary, cls=DjangoJSONEncoder)
 
     def get_queryset_with_status(self, *args, **kwargs):
-        # breakpoint()
-        # retorno = self.filter(
-        #     custom_query__company=
-        #     APIUser.objects.get(user=args[0]).active_company
-        #     )
         retorno = self.filter(
             company=APIUser.objects.get(user=args[0]).active_company
             )
-        if not retorno:
+        if not retorno.exists():
             raise NotFound('Não existe nenhuma Campanha para a empresa ativa.')
         # tempcq = CustomQuery.objects.get(pk=retorno[0].custom_query_id)
         tempcq = retorno[0].custom_query
@@ -548,15 +545,12 @@ class CampaignManager(models.Manager):
         # queries = retorno[0].custom_query.company.company_rel.all()
         queries = [x.custom_query for x in retorno]
         # metrics = retorno[0].custom_query.company.custommetrics_set.all()
-        
+        status, end_date = self.get_recent_date(tempcq, retorno[0].clorus_id)
         return retorno.annotate(
-            # metrics_summary = models.Value(
-            #     self.get_metrics_sum(metrics=metrics, queries=queries, id_clorus=retorno[0].clorus_id)),
             metrics_summary = models.Value(
                 self.get_metrics_campaign(metrics=['Leads','Revenue','ROAS','CAC'], queries=queries, campaign=retorno,products=retorno[0].campaign_details.all(), id_clorus=retorno[0].clorus_id)),
-            status = models.Value(self.get_recent_date(
-                tempcq, retorno[0].clorus_id
-            ))
+            status = models.Value(status),
+            end_date = models.Value(end_date.date())
         )
 
     
