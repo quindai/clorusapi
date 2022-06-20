@@ -44,7 +44,7 @@ class CampaignPostSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         campaign_details = validated_data.pop('campaign_details')
 
-        active_company =  APIUser.objects.get(user=self.context['request'].user).active_company
+        active_company = APIUser.objects.get(user=self.context['request'].user).active_company
         validated_data['company'] = active_company
         campaign_instance = Campaign.objects.create(**validated_data)
         

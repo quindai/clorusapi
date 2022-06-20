@@ -589,7 +589,7 @@ class Campaign(models.Model):
     # comercial = models.ForeignKey(Comercial, on_delete=models.CASCADE, null=True)
     company = models.ForeignKey(Company, on_delete=models.CASCADE, default=1)
     budget = models.CharField(max_length=255, default='', verbose_name="Valor Investido")
-    date_created = models.DateTimeField(auto_now_add=True)
+    date_created = models.DateTimeField(null=True, blank=True)
     last_change = models.DateTimeField(blank=True, null=True)
 
     objects = CampaignManager()
@@ -625,13 +625,13 @@ class Criativos(models.Model):
     objective = models.CharField(max_length=100, null=True, blank=True)
     channel = models.CharField(max_length=100, null=True, blank=True)
     format = models.CharField(max_length=100, null=True, blank=True)
-    range_goal = models.IntegerField()
-    ctr_goal = models.FloatField()
-    click_goal = models.IntegerField()
-    cpc_goal = models.FloatField()
-    cpl_goal = models.FloatField()
-    leads_goal = models.FloatField()
-    invested_goal = models.FloatField() # spend
+    range_goal = models.IntegerField(null=True, blank=True)
+    ctr_goal = models.FloatField(null=True, blank=True)
+    click_goal = models.IntegerField(null=True, blank=True)
+    cpc_goal = models.FloatField(null=True, blank=True)
+    cpl_goal = models.FloatField(null=True, blank=True)
+    leads_goal = models.FloatField(null=True, blank=True)
+    invested_goal = models.FloatField(null=True, blank=True) # spend
     #metrics
     ## alcance, ctr, cliques, cpc, cpl, leads, investimento
 
@@ -649,8 +649,12 @@ def save_criativos(instance):
         host=config('MYSQL_DB_HOST'),
         database=query.db_name)
 
-    stmt = "SELECT * FROM {} WHERE Campaign LIKE '%{}%' GROUP BY `Ad ID`".format(
+    # remove espaço em branco de todos os itens separados por vírgula
+    data_columns = [t.strip() for t in tuple(query.data_columns.split(',')) if t]
+
+    stmt = "SELECT * FROM {} WHERE {} LIKE '%{}%' GROUP BY `Ad ID`".format(
         '_'.join([query.company_source, query.datasource]),
+        data_columns[0],
         clorus_id,
     )
 
@@ -667,8 +671,7 @@ def save_criativos(instance):
         tipo_midia= row['tipo_midia'],
         channel= row['channel'],
         format= row['format'],
-        objective= row['objective'], # TODO || NULL
-
+        objective= row.get('objective',''), 
         campaign= instance
     ) for row in rows)
 
