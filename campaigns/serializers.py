@@ -24,14 +24,12 @@ class CampaignSerializer(serializers.ModelSerializer):
     def get_goal(self,obj):
         return dict(Campaign.GOAL_SELECT)[obj.goal]
 
-    # Data do MySQL (MIN)
-    # start_date_min
-    # última data full end_date
     def get_year(self, obj): 
-        return obj.date_created.strftime('%Y')
+        # breakpoint()
+        return obj.start_date.strftime('%Y')
 
     def get_month(self, obj):
-        return obj.date_created.strftime('%b')
+        return obj.start_date.strftime('%b')
 
 class CampaignPostSerializer(serializers.ModelSerializer):
     last_change = serializers.DateTimeField(read_only=True)

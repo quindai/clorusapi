@@ -589,7 +589,7 @@ class Campaign(models.Model):
     # comercial = models.ForeignKey(Comercial, on_delete=models.CASCADE, null=True)
     company = models.ForeignKey(Company, on_delete=models.CASCADE, default=1)
     budget = models.CharField(max_length=255, default='', verbose_name="Valor Investido")
-    date_created = models.DateTimeField(null=True, blank=True)
+    start_date = models.DateTimeField()
     last_change = models.DateTimeField(blank=True, null=True)
 
     objects = CampaignManager()
