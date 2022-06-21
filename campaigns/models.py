@@ -5,21 +5,22 @@ from django.db import models
 from django.dispatch import receiver
 from django.db.models.signals import post_save
 from django.utils import timezone
+from django.core.serializers.json import DjangoJSONEncoder
 
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
+
+from rest_framework.exceptions import NotFound
+
 from mysql.connector import errorcode
 import mysql.connector
-import pytz # for time UTC
 import decimal #for decimal field
 
-from comercial.models import Comercial
 from company.models import Company, CustomQuery
 from accounts.models.apiuser import APIUser
 from clorusapi.utils.common import CommonProduct
+from clorusapi.utils.properties import lazy_property
 
-from rest_framework.exceptions import NotFound
-from django.core.serializers.json import DjangoJSONEncoder
 
 # TODO 
 # SELECT SUM(impressions), id_clorus FROM test.sebraeal_programatica where id_clorus='#238470';
@@ -35,7 +36,6 @@ class MainMetrics():
         ('views_50','50% Views de Vídeo/Áudio'),
         ('views_75','75% Views de Vídeo/Áudio'),
         ('views_100','100% Views de Vídeo/Áudio'),
-        # ('10','Conversões'),
         ('ctr','CTR - Taxa de Cliques'),
         ('cpv','CPV - Custo por View'),
         ('cpc','CPC - Custo por Clique'),
@@ -106,16 +106,13 @@ class MainMetrics():
     ]
     METRICS_HYBRID = [
         'balance',
-        'invested'
+        # 'invested'
     ]
 
     def get_db_table(cls, **kwargs):
         return dict(cls.METRICS_DB)[kwargs['metric']]
 
     def calc_annotate(metric, human_metric, *args):
-        # breakpoint()
-        # args[1] = 0 if args[1]==None else args[1]
-        # args[0] = 0 if args[0]==None else args[0]
         if args[1] == 0:
             return {human_metric: args[1]}
         try:
@@ -290,65 +287,11 @@ class MainMetrics():
         # breakpoint()
         if metric in cls.METRICS_DB_ANNOTATE:
             return cls.calc_annotate(
-                metric,
-                dict(cls.METRICS)[metric],
-                *metrics_summary.values()
-                # metrics_summary[dict(cls.METRICS)[metrics[0]]], 
-                # metrics_summary[dict(cls.METRICS)[metrics[1]]]
+                    metric,
+                    dict(cls.METRICS)[metric],
+                    *metrics_summary.values()
                 )
         return metrics_summary
-
-    @classmethod
-    def get_criativo_metrics(cls, **kwargs):
-        # breakpoint()
-        # inicializa todas as metricas com valor zero
-        metrics_summary = {dict(cls.METRICS)[x]:0 for x in kwargs['metrics']}
-
-        campaign = Campaign.objects.filter(pk=kwargs['campaign_id'])
-        novo = kwargs['criativos']
-        if campaign.exists():
-            q = campaign[0].custom_query
-            cnx=mysql.connector.connect(
-                user=config('MYSQL_DB_USER'),
-                password=config('MYSQL_DB_PASS'),
-                host=config('MYSQL_DB_HOST'),
-                database=q.db_name)
-            for index, criativo in enumerate(kwargs['criativos']):
-                stmt = "SELECT CAST(SUM(Clicks) as SIGNED) as {} FROM {} WHERE Campaign LIKE '%{}%' AND `Ad ID`={}".format(
-                    dict(cls.METRICS)['clicks'],
-                    '_'.join([q.company_source, 'googleads']),
-                    campaign[0].clorus_id,
-                    criativo.ad_id
-                )
-
-                with cnx.cursor(buffered=True, dictionary=True) as cursor:  
-                    cursor.execute(stmt)
-                    row = cursor.fetchone()
-                    col_name = dict(cls.METRICS)['clicks']
-                    if col_name in metrics_summary.keys():
-                        metrics_summary[col_name] = row[col_name]
-                        # else:
-                        #     metrics_summary[col_name] = metrics_summary[col_name]+row[col_name]
-                    else:
-                        metrics_summary.update(row)
-                    cursor.close()
-                    # breakpoint()
-                    #TODO working urgente
-                    # if row:
-                    #     novo=novo.filter(pk=criativo.pk).annotate(
-                    #         metrics_summary = models.Value(
-                    #             json.dumps(metrics_summary, cls=DjangoJSONEncoder)
-                    #         )
-                    #     )
-                
-            cnx.close()
-        
-        # breakpoint()
-        # stmt = "SELECT * FROM {} WHERE Campaign LIKE '%{}%' GROUP BY `Ad ID`".format(
-        # '_'.join([query.company_source, query.datasource]),
-        # clorus_id,
-        # )
-        return kwargs['criativos']
 
 
 class CampaignManager(models.Manager):
@@ -631,6 +574,53 @@ class Criativos(models.Model):
 
     # objects = CriativoManager()
 
+    def calcm(self, stmt, metric, cnx):
+        with cnx.cursor(buffered=True, dictionary=True) as cursor:  
+                cursor.execute(stmt)
+                row = cursor.fetchone()
+                cursor.close()
+        return row
+        
+    @property
+    def get_mm(self):
+        campaign = Campaign.objects.filter(pk=self.campaign.pk)
+        metrics=['range','ctr','clicks','cpc','cpl','leads','invested']
+        metrics_summary = {dict(MainMetrics.METRICS)[x]:None for x in metrics}
+        if campaign.exists():
+            q = campaign[0].custom_query
+            cnx=mysql.connector.connect(
+                user=config('MYSQL_DB_USER'),
+                password=config('MYSQL_DB_PASS'),
+                host=config('MYSQL_DB_HOST'),
+                database=q.db_name)
+            stmt = """SELECT CAST(SUM(Clicks) as SIGNED) as {} 
+                FROM {} 
+                WHERE Campaign LIKE '%{}%' AND `Ad ID`={}
+                """.format(
+                    dict(MainMetrics.METRICS)['clicks'],
+                    '_'.join([q.company_source, 'googleads']),
+                    campaign[0].clorus_id,
+                    self.ad_id
+                )
+            col_name = dict(MainMetrics.METRICS)['clicks']
+            metrics_summary[col_name] = self.calcm(stmt, 'clicks', cnx).get(col_name,None)
+
+
+            stmt = """SELECT CAST(SUM(reach) as SIGNED) as {} 
+                FROM {} 
+                WHERE campaign_name LIKE '%{}%' AND `ad_id`={}
+                """.format(
+                    dict(MainMetrics.METRICS)['clicks'],
+                    '_'.join([q.company_source, 'facebookads']),
+                    campaign[0].clorus_id,
+                    self.ad_id
+                )
+            col_name = dict(MainMetrics.METRICS)['range']
+            metrics_summary[col_name] = self.calcm(stmt, 'range', cnx).get(col_name, None)
+            cnx.close()
+            return json.dumps(metrics_summary)
+        return json.dumps({'metrics':[]})
+
     class Meta:
         ordering = ['id']
 
@@ -646,6 +636,7 @@ def save_criativos(instance):
     # remove espaço em branco de todos os itens separados por vírgula
     data_columns = [t.strip() for t in tuple(query.data_columns.split(',')) if t]
 
+    # TODO colocar os criativos de todas as tabelas
     stmt = "SELECT * FROM {} WHERE {} LIKE '%{}%' GROUP BY `Ad ID`".format(
         '_'.join([query.company_source, query.datasource]),
         data_columns[0],

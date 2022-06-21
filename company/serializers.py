@@ -1,7 +1,6 @@
 from accounts.models.apiuser import APIUser
 from rest_framework import serializers
 from .models import Company, CustomMetrics, CustomQuery
-from accounts.serializers import UserAPISerializer
 
 class CustomQuerySerializer(serializers.ModelSerializer):
     class Meta:
@@ -17,13 +16,12 @@ class CustomMetricsSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class CompanySerializer(serializers.ModelSerializer):
-    # user = UserAPISerializer(read_only=True)
     cnpj = serializers.CharField(default=None, read_only=True)
     name = serializers.CharField(default=None, read_only=True)
     logo = serializers.CharField(default=None, read_only=True)
-    funil_metrics = serializers.ListSerializer(child=CustomMetricsSerializer(), source='custommetrics_set')
-    
-    # db_name = serializers.CharField(default=None, read_only=True)
+    funil_metrics = serializers.ListSerializer(
+        child=CustomMetricsSerializer(), 
+        source='custommetrics_set')
 
     class Meta:
         model = Company

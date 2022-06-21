@@ -102,7 +102,6 @@ class CampaignOptimizationView(generics.GenericAPIView,
 
 class CriativosView(generics.GenericAPIView,
                         mixins.UpdateModelMixin,
-                        mixins.RetrieveModelMixin,
                         mixins.ListModelMixin):
     serializer_class = CriativoSerializer
     queryset = Criativos.objects.all()
@@ -110,38 +109,20 @@ class CriativosView(generics.GenericAPIView,
     lookup_field = 'campaign_id'
 
     def get_queryset(self):
-        # breakpoint()
         # original qs
         qs = super().get_queryset() 
         # filter by a variable captured from url, for example
-        # return (qs
-        #         .filter(campaign__pk=self.kwargs['campaign_id'])
-        #         .annotate(
-        #             metrics_summary = 
-        #                 MainMetrics.get_criativo_metrics(
-        #                     **self.kwargs,
-                            
-        #                     metrics=['range','ctr','click','cpc','cpl','lead','investment']
-        #                 ),
-        #         ))
-        return (MainMetrics.get_criativo_metrics(
-                            **self.kwargs,
-                            criativos=qs.filter(campaign__pk=self.kwargs['campaign_id']),
-                            metrics=['range','ctr','clicks','cpc','cpl','leads','invested']
-                        )                                 
+        return (qs
+                .filter(campaign__pk=self.kwargs['campaign_id'])
                 )
-        # return qs.filter(name__startswith=self.kwargs['name'])
+        
+        #metrics=['range','ctr','clicks','cpc','cpl','leads','invested']
 
     def get(self, request, *args, **kwargs):
-        # breakpoint()
-        # return self.retrieve(request, *args, **kwargs)
         return self.list(request, *args, **kwargs)
 
     def put(self, request, *args, **kwargs):
         return self.update(request, *args, **kwargs)
-
-    # def post(self, request, *args, **kwargs):
-    #     return self.create(request, *args, **kwargs)
 
 class CampaignOptimizationGETView(generics.GenericAPIView,
                         mixins.ListModelMixin):
