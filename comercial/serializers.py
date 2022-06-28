@@ -65,12 +65,9 @@ class ComercialSerializer(serializers.ModelSerializer):
 
 class ComercialProductUpdateSerializer(serializers.ModelSerializer):
     product = ProductSerializer(many=True)
-    # id = serializers.IntegerField()
-
     class Meta:
         model= Product
         fields = ( 'product', )
-
 
     def validate(self, attrs):
         # breakpoint()

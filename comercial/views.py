@@ -51,7 +51,6 @@ class ComercialAPIView(generics.GenericAPIView,
 
 class ComercialProductUpdateView(generics.GenericAPIView):
     serializer_class = ComercialProductUpdateSerializer
-    # queryset = GoalPlanner.objects.all()
     
     def get_object(self, id):
         try:
@@ -61,7 +60,7 @@ class ComercialProductUpdateView(generics.GenericAPIView):
 
     def put(self, request, *args, **kwargs):
         serializer = ComercialProductUpdateSerializer( data=request.data, context=kwargs)
-        if serializer.is_valid():
+        if serializer.is_valid(raise_exception=True):
             serializer.save()
         return Response(serializer.data)
 

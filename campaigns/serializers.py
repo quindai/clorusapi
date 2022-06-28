@@ -68,6 +68,7 @@ class CampaignOptimizationGETSerializer(serializers.ModelSerializer):
 
 class CriativoSerializer(serializers.ModelSerializer):
     metrics_summary = serializers.ReadOnlyField(source='get_mm')
+    campaign = serializers.IntegerField(read_only=True)
     class Meta:
         model = Criativos
         fields = '__all__'

@@ -101,7 +101,7 @@ class CampaignOptimizationView(generics.GenericAPIView,
         return self.create(request, *args, **kwargs)
 
 class CriativosView(generics.GenericAPIView,
-                        mixins.UpdateModelMixin,
+                        # mixins.UpdateModelMixin,
                         mixins.ListModelMixin):
     serializer_class = CriativoSerializer
     queryset = Criativos.objects.all()
@@ -111,18 +111,32 @@ class CriativosView(generics.GenericAPIView,
     def get_queryset(self):
         # original qs
         qs = super().get_queryset() 
-        # filter by a variable captured from url, for example
+        # filter by a variable captured from url
         return (qs
                 .filter(campaign__pk=self.kwargs['campaign_id'])
                 )
-        
-        #metrics=['range','ctr','clicks','cpc','cpl','leads','invested']
-
+                
     def get(self, request, *args, **kwargs):
         return self.list(request, *args, **kwargs)
 
     def put(self, request, *args, **kwargs):
-        return self.update(request, *args, **kwargs)
+        breakpoint()
+        if not request.data.get('ad_id',''):
+            return Response({"detail":"Insira o campo 'ad_id'."}, status=status.HTTP_400_BAD_REQUEST)
+        ad_id = request.data.pop('ad_id')
+        try:
+            criativo = Criativos.objects.filter(
+                campaign=kwargs.get('campaign_id',0)
+                ,ad_id=ad_id)
+            criativo.update(**request.data)
+            serializer = CriativoSerializer(criativo)
+        except Criativos.DoesNotExist:
+            return Response({'detail': f'Criativo com ad_id {ad_id} não existe.'},status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e),'detail':'Não encontramos o item do campo especificado'},
+                 status=status.HTTP_404_NOT_FOUND)
+        else:
+            return Response(serializer.data, status=status.HTTP_206_PARTIAL_CONTENT)
 
 class CampaignOptimizationGETView(generics.GenericAPIView,
                         mixins.ListModelMixin):

@@ -307,6 +307,9 @@ class CampaignManager(models.Manager):
                 '_'.join([args[0].company_source, args[0].datasource]),
                 args[1])
         
+        #TODO company datasource fields [rule]
+        # 1- id_clorus
+        # 2- 
             with cnx.cursor(buffered=True) as cursor:  
                 cursor.execute(stmt)
                 row = cursor.fetchone()
@@ -513,7 +516,11 @@ class Campaign(models.Model):
         ('4','Geração de lead'),
         ('5','Vendas'),
     ]
-    clorus_id = models.CharField(max_length=255, default='')
+    #TODO
+    # Funil select metric to show by id
+    # [true, false, true]
+    funil_ids = models.CharField(max_length=255, default='')
+    clorus_id = models.CharField(max_length=100, default='')
     name = models.CharField(max_length=255, default='', verbose_name="Nome da Campanha")
     image = models.TextField(default='')
     goal = models.CharField(max_length=2, default='', choices=GOAL_SELECT, 
@@ -553,20 +560,20 @@ class Criativos(models.Model):
         ('4','Geração de lead'),
         ('5','Vendas'),
     ]
-    campaign = models.ForeignKey(Campaign, on_delete=models.CASCADE)
-    ad_group_id = models.CharField(max_length=100)
-    ad_id = models.CharField(max_length=100)
-    description = models.CharField(max_length=255)
-    tipo_midia = models.CharField(max_length=100, null=True, blank=True)
+    campaign = models.ForeignKey(Campaign, on_delete=models.CASCADE) 
+    ad_group_id = models.CharField(max_length=100, null=True, blank=True)  
+    ad_id = models.CharField(max_length=100, null=True, blank=True)    
+    description = models.CharField(max_length=255, null=True, blank=True)
+    tipo_midia = models.CharField(max_length=100, null=True, blank=True)    #read_only
     
     objective = models.CharField(max_length=100, null=True, blank=True)
-    channel = models.CharField(max_length=100, null=True, blank=True)
-    format = models.CharField(max_length=100, null=True, blank=True)
+    channel = models.CharField(max_length=100, null=True, blank=True)   #read_only
+    format = models.CharField(max_length=100, null=True, blank=True)    #read_only
     range_goal = models.IntegerField(null=True, blank=True)
-    ctr_goal = models.FloatField(null=True, blank=True)
-    click_goal = models.IntegerField(null=True, blank=True)
-    cpc_goal = models.FloatField(null=True, blank=True)
-    cpl_goal = models.FloatField(null=True, blank=True)
+    ctr_goal = models.FloatField(null=True, blank=True) #read_only
+    click_goal = models.IntegerField(null=True, blank=True) #read_only
+    cpc_goal = models.FloatField(null=True, blank=True) #read_only
+    cpl_goal = models.FloatField(null=True, blank=True) #read_only
     leads_goal = models.FloatField(null=True, blank=True)
     invested_goal = models.FloatField(null=True, blank=True) # spend
     #metrics
@@ -604,7 +611,6 @@ class Criativos(models.Model):
                 )
             col_name = dict(MainMetrics.METRICS)['clicks']
             metrics_summary[col_name] = self.calcm(stmt, 'clicks', cnx).get(col_name,None)
-
 
             stmt = """SELECT CAST(SUM(reach) as SIGNED) as {} 
                 FROM {} 
@@ -682,7 +688,8 @@ class Optimization(models.Model):
         ('3','Neutro')
     ]
     campaign = models.ForeignKey(Campaign, on_delete=models.CASCADE)
-    date_created = models.DateField(auto_now_add=True, db_index=True)
+    date_created = models.DateField(db_index=True)
+    title = models.CharField(max_length=50)
     description = models.TextField()
     hypothesis = models.TextField()
     result = models.TextField()
