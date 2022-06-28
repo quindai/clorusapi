@@ -120,7 +120,7 @@ class CriativosView(generics.GenericAPIView,
         return self.list(request, *args, **kwargs)
 
     def put(self, request, *args, **kwargs):
-        breakpoint()
+        # breakpoint()
         if not request.data.get('ad_id',''):
             return Response({"detail":"Insira o campo 'ad_id'."}, status=status.HTTP_400_BAD_REQUEST)
         ad_id = request.data.pop('ad_id')
@@ -128,10 +128,10 @@ class CriativosView(generics.GenericAPIView,
             criativo = Criativos.objects.filter(
                 campaign=kwargs.get('campaign_id',0)
                 ,ad_id=ad_id)
+            if not criativo.exists():
+                return Response({'detail': f'Criativo com ad_id {ad_id} não existe.'},status=status.HTTP_404_NOT_FOUND)
             criativo.update(**request.data)
             serializer = CriativoSerializer(criativo)
-        except Criativos.DoesNotExist:
-            return Response({'detail': f'Criativo com ad_id {ad_id} não existe.'},status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({'error': str(e),'detail':'Não encontramos o item do campo especificado'},
                  status=status.HTTP_404_NOT_FOUND)
