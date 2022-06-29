@@ -105,7 +105,7 @@ class CustomQuery(models.Model):
                     help_text="Nome da empresa no banco MySQL. Exemplo: sebraeal|sebrae") #[sebraeal|sebrae]
     datasource = models.CharField(max_length=100, null=True, 
                     blank=True, help_text="Nome do social. Exemplo: googleads|facebookads|programatica") #[googleads|facebookads|programatica]
-    data_columns = models.TextField(null=True, blank=True, help_text="Colunas da tabela separadas por vírgula. A primeira coluna tem que conter o idclorus. Exemplo: campaign_id, campaign_name")
+    data_columns = models.TextField(null=True, blank=True, help_text="Colunas da tabela separadas por vírgula. Ordem das colunas idclorus, ad_id [,...]. Exemplo: Campaign, `Ad ID` | Creative_Set")
     company = models.ForeignKey(Company, related_name='company_rel', on_delete=models.CASCADE)
     date_created = models.DateTimeField(auto_now_add=True)
 

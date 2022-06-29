@@ -99,6 +99,7 @@ class MainMetrics():
     METRICS_RD = [
         'email',
         'opportunities',
+        'visits',
         # 'conversions'
     ]
     METRICS_MARKETEER = [
@@ -171,9 +172,9 @@ class MainMetrics():
                     )
         elif metric in cls.METRICS_RD:
             # breakpoint()
-            metrics = ['email_' + x for x in cls.calc_catering(metric)]
             for q in queries:
-                if 'emails' in q.datasource:
+                if 'emails' in q.datasource and metric == 'email':
+                    metrics = ['email_' + x for x in cls.calc_catering(metric)]
                     cnx=mysql.connector.connect(
                         user=config('MYSQL_DB_USER'),
                         password=config('MYSQL_DB_PASS'),
@@ -212,7 +213,44 @@ class MainMetrics():
                         metrics_summary['Taxa de Abertos'] = metrics_summary['Abertos']/metrics_summary['Entrega']
                         metrics_summary['Taxa Clicados'] = metrics_summary['Clicados']/metrics_summary['Entrega']
                         cursor.close()
-            
+                elif 'conversions' in q.datasource and metric == 'visits':
+                    cnx=mysql.connector.connect(
+                        user=config('MYSQL_DB_USER'),
+                        password=config('MYSQL_DB_PASS'),
+                        host=config('MYSQL_DB_HOST'),
+                        database=q.db_name)
+                    stmt = "SELECT  SUM({}) as {} FROM {} WHERE {} like '%{}%'".format(
+                                'visits', 
+                                dict(cls.METRICS)[metric],
+                                '_'.join([q.company_source, q.datasource]),
+                                q.data_columns.split(',')[0],
+                                clorus_id
+                            )
+                    with cnx.cursor(buffered=True, dictionary=True) as cursor:  
+                        cursor.execute(stmt)
+                        row = cursor.fetchone()
+                        col_name = dict(cls.METRICS)[metric]
+                        cursor.close()
+                    metrics_summary.update(row)
+                elif 'opportunities' in q.datasource and metric == 'opportunities':
+                    cnx=mysql.connector.connect(
+                        user=config('MYSQL_DB_USER'),
+                        password=config('MYSQL_DB_PASS'),
+                        host=config('MYSQL_DB_HOST'),
+                        database=q.db_name)
+                    stmt = "SELECT  Count({}) as {} FROM {} WHERE {} like '%{}%'".format(
+                                'uuid', 
+                                dict(cls.METRICS)[metric],
+                                '_'.join([q.company_source, q.datasource]),
+                                q.data_columns.split(',')[0],
+                                clorus_id
+                            )
+                    with cnx.cursor(buffered=True, dictionary=True) as cursor:  
+                        cursor.execute(stmt)
+                        row = cursor.fetchone()
+                        col_name = dict(cls.METRICS)[metric]
+                        cursor.close()
+                    metrics_summary.update(row)
         else:
             for q in queries:
                 # if not cnx:
@@ -590,6 +628,7 @@ class Criativos(models.Model):
         
     @property
     def get_mm(self):
+        # breakpoint()
         campaign = Campaign.objects.filter(pk=self.campaign.pk)
         metrics=['range','ctr','clicks','cpc','cpl','leads','invested']
         metrics_summary = {dict(MainMetrics.METRICS)[x]:None for x in metrics}
@@ -612,7 +651,7 @@ class Criativos(models.Model):
             col_name = dict(MainMetrics.METRICS)['clicks']
             metrics_summary[col_name] = self.calcm(stmt, 'clicks', cnx).get(col_name,None)
 
-            stmt = """SELECT CAST(SUM(reach) as SIGNED) as {} 
+            stmt = """SELECT CAST(NULLIF(SUM(reach),0) as SIGNED) as {} 
                 FROM {} 
                 WHERE campaign_name LIKE '%{}%' AND `ad_id`={}
                 """.format(
@@ -643,10 +682,11 @@ def save_criativos(instance):
     data_columns = [t.strip() for t in tuple(query.data_columns.split(',')) if t]
 
     # TODO colocar os criativos de todas as tabelas
-    stmt = "SELECT * FROM {} WHERE {} LIKE '%{}%' GROUP BY `Ad ID`".format(
+    stmt = "SELECT * FROM {} WHERE {} LIKE '%{}%' GROUP BY `{}`".format(
         '_'.join([query.company_source, query.datasource]),
         data_columns[0],
         clorus_id,
+        data_columns[1],
     )
 
     with cnx.cursor(buffered=True, dictionary=True) as cursor:  
@@ -656,9 +696,9 @@ def save_criativos(instance):
     cnx.close()
 
     criativos = (Criativos(
-        ad_group_id= row['Ad group ID'],
-        ad_id= row['Ad ID'],
-        description= row['Description'],
+        ad_group_id= row.get('Ad group ID',''),
+        ad_id= row[data_columns[1].replace('`','')],
+        description= row.get('Description',''),
         tipo_midia= row['tipo_midia'],
         channel= row['channel'],
         format= row['format'],

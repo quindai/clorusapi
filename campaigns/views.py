@@ -120,7 +120,6 @@ class CriativosView(generics.GenericAPIView,
         return self.list(request, *args, **kwargs)
 
     def put(self, request, *args, **kwargs):
-        # breakpoint()
         if not request.data.get('ad_id',''):
             return Response({"detail":"Insira o campo 'ad_id'."}, status=status.HTTP_400_BAD_REQUEST)
         ad_id = request.data.pop('ad_id')
@@ -142,7 +141,7 @@ class CampaignOptimizationGETView(generics.GenericAPIView,
                         mixins.ListModelMixin):
     serializer_class = CampaignOptimizationGETSerializer
     queryset = Optimization.objects.all()
-    permission_classes = (permissions.IsAuthenticated, BasicPermission)
+    permission_classes = (permissions.IsAuthenticated)
 
     def get_queryset(self):
         try:                        
