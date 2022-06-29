@@ -52,8 +52,9 @@ class RequestPasswordResetEmailView(generics.GenericAPIView):
     serializer_class = RequestPasswordResetEmailSerializer
 
     def post(self, request):
-        # data = {'request': request, 'email':request.data}
-        serializer = self.serializer_class(data=request.data)
+        # breakpoint()
+        data = {'request': request, **request.data}
+        serializer = self.serializer_class(data=data)
         serializer.is_valid(raise_exception=True)
         return Response({'success':'Enviamos o link para o seu email.'}, status=status.HTTP_202_ACCEPTED)
 

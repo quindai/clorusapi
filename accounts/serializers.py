@@ -93,7 +93,6 @@ class RequestPasswordResetEmailSerializer(serializers.Serializer):
         fields = ['email']
 
     def validate(self, attrs):
-            # breakpoint()
             # email = attrs['data'].get('email','')
             email = attrs.get('email','')
             # if APIUser.objects.filter(user__email=email).exists():
@@ -104,11 +103,10 @@ class RequestPasswordResetEmailSerializer(serializers.Serializer):
                 token= PasswordResetTokenGenerator().make_token(user)
                 # current_site = get_current_site(
                     # request=attrs['data'].get('request')).domain
-                current_site = self.request.META['HTTP_REFERER']
-                # 'localhost:8000'
+                current_site = self.initial_data['request'].META['HTTP_REFERER']
 
                 relative_link = reverse('reset_password_confirm', kwargs={'uidb64': uidb64, 'token':token})
-                abs_url = f'http://{current_site}{relative_link}'
+                abs_url = f'{current_site[:-1]}{relative_link}'
                 send_mail(
                     subject='BI Clorus - Recuperar senha',
                     message=f'Oi {user.username} \n Use o link a seguir para redefinir a sua senha: \n{abs_url}',
