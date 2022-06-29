@@ -556,7 +556,7 @@ class Campaign(models.Model):
     ]
     #TODO
     # Funil select metric to show by id
-    # [true, false, true]
+    # [51, 1, 52,2]
     funil_ids = models.CharField(max_length=255, default='')
     clorus_id = models.CharField(max_length=100, default='')
     name = models.CharField(max_length=255, default='', verbose_name="Nome da Campanha")

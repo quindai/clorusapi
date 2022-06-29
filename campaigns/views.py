@@ -141,7 +141,7 @@ class CampaignOptimizationGETView(generics.GenericAPIView,
                         mixins.ListModelMixin):
     serializer_class = CampaignOptimizationGETSerializer
     queryset = Optimization.objects.all()
-    permission_classes = (permissions.IsAuthenticated)
+    permission_classes = (permissions.IsAuthenticated, )
 
     def get_queryset(self):
         try:                        
