@@ -612,6 +612,8 @@ class Criativos(models.Model):
     click_goal = models.IntegerField(null=True, blank=True) #read_only
     cpc_goal = models.FloatField(null=True, blank=True) #read_only
     cpl_goal = models.FloatField(null=True, blank=True) #read_only
+    cpv_goal = models.FloatField(null=True, blank=True) #read_only
+    view_goal = models.FloatField(null=True, blank=True) #read_only
     leads_goal = models.FloatField(null=True, blank=True)
     invested_goal = models.FloatField(null=True, blank=True) # spend
     #metrics

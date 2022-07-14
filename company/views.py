@@ -76,7 +76,7 @@ class CompanyAPIView(generics.GenericAPIView,
 class CompanyActiveInternView(generics.GenericAPIView,
                             mixins.RetrieveModelMixin):
     serializer_class = CompanyInternSerializer
-    permission_classes = [permissions.IsAuthenticated, BasicPermission]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_object(self, user):
         try:

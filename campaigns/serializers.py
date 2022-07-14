@@ -4,6 +4,7 @@ from accounts.models.apiuser import APIUser
 
 from .models import Campaign, CampaignMetaDetail, Criativos, Optimization
 from company.serializers import CompanySerializer
+import locale
 
 class CampaignMetaDetailSerializer(serializers.ModelSerializer):
     class Meta:
@@ -29,6 +30,7 @@ class CampaignSerializer(serializers.ModelSerializer):
         return obj.start_date.strftime('%Y')
 
     def get_month(self, obj):
+        locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
         return obj.start_date.strftime('%b')
 
 class CampaignPostSerializer(serializers.ModelSerializer):

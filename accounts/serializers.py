@@ -105,6 +105,9 @@ class RequestPasswordResetEmailSerializer(serializers.Serializer):
                     # request=attrs['data'].get('request')).domain
                 current_site = self.initial_data['request'].META['HTTP_REFERER']
 
+                # rota do front
+                # http://clorusanalytics.tk/passwordreset/:base64/:token
+
                 relative_link = reverse('reset_password_confirm', kwargs={'uidb64': uidb64, 'token':token})
                 abs_url = f'{current_site[:-1]}{relative_link}'
                 send_mail(

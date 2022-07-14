@@ -105,7 +105,7 @@ class CriativosView(generics.GenericAPIView,
                         mixins.ListModelMixin):
     serializer_class = CriativoSerializer
     queryset = Criativos.objects.all()
-    permission_classes = (permissions.IsAuthenticated, BasicPermission)
+    permission_classes = (permissions.IsAuthenticated, )
     lookup_field = 'campaign_id'
 
     def get_queryset(self):
