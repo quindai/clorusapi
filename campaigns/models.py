@@ -139,6 +139,8 @@ class MainMetrics():
             'roas': ['spend','revenue'],
             'cac': ['spend','deals'],
             'balance': ['budget','spend'],
+            #TODO
+            # retificar invested
             'invested': ['spend','cpc','cpv','cac','cpl'],
             'email': ['sent', 'delivered', 'opened', 'tx_opened', 'tx_clicks']
         }.get(metric)

@@ -30,6 +30,9 @@ class CompanySerializer(serializers.ModelSerializer):
 
 class CompanyInternSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(default=None)
+    funil = serializers.ListSerializer(
+        child=CustomMetricsSerializer(), 
+        source='custommetrics_set')
     class Meta:
         model = Company
         fields = '__all__'
