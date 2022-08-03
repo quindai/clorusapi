@@ -2,7 +2,11 @@ from django.urls import path
 
 from company.views import CompanyAPIView, CompanyActiveEmployeesAPIView, CompanyActiveInternView, CompanyDetailAPIView, CompanyMetricsView, CompanyStarInternView, CustomQueryAPIView
 
-# , StarCompanyAPIView
+"""
+Routes related to
+    path('company/', include('company.urls'))
+From clorusapi.urls.py
+"""
 
 # Company views
 urlpatterns = [

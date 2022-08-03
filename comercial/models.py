@@ -9,24 +9,16 @@ from clorusapi.utils.common import CommonProduct
 
 class Product(CommonProduct):
     """
-    A Product should have all this fields inherited from CommonProduct
+    A Product should have all the fields inherited from CommonProduct, plus history
     """
     history = HistoricalRecords()
-    # id_crm = models.CharField(max_length=50)
-    # name = models.CharField(max_length=255, verbose_name="Nome do Produto")
-    # #
-    # quantity = models.IntegerField(verbose_name="Quantidade")
-    # #
-    # price = models.DecimalField(decimal_places=2, max_digits=8)
-    # date_created = models.DateTimeField(auto_now_add=True)
-    #goal = models.IntegerField(verbose_name="Meta") #
-
-    # class Meta:
-        # verbose_name = 'Produto'
-        # ordering = ['id_crm']
 
 
 class GoalPlanner(models.Model):
+    """
+    Auxiliary class to save many products associated with their respective business goals.
+    It relates directly to Comercial by the model field "goal"
+    """
     product = models.ManyToManyField(Product, default=1, verbose_name="Produto")
     history = HistoricalRecords()
     class Meta:

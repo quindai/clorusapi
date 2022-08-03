@@ -8,6 +8,11 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView, TokenObtainPairView
 )
 
+"""
+Routes related to
+    path('auth/', include('accounts.urls'))
+From clorusapi.urls.py
+"""
 urlpatterns = [
     # path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('user/', GetUserAPIView.as_view(), name='get_user'),

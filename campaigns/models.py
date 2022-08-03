@@ -27,7 +27,7 @@ from clorusapi.utils.properties import lazy_property
 
 # TODO Soh retorne métricas que estão no banco de dados
 class MainMetrics():
-    METRICS = [ # Nome de todas as métricas
+    METRICS = [ # Human readable metric's names
         ('impressions','Impressões'),
         ('clicks','Cliques'),
         ('range','Alcance'),
@@ -53,7 +53,8 @@ class MainMetrics():
         ('invested','Investido'),
         ('conversions','Conversão'),
     ]
-    METRICS_DB = [ # métricas de soma
+    # database columns mapping for each metric
+    METRICS_DB = [ 
         ('impressions',['impressions']),
         ('clicks',['clicks']),
         ('range',['reach']),
@@ -68,7 +69,8 @@ class MainMetrics():
         ('revenue',['price']),
         ('conversions', ['conversion'])
     ]
-    # Métricas que dependem de outras métricas para serem calculadas
+    # arguments for compound calculated metrics
+    # this metrics are calculated from other basic metrics
     METRICS_DB_ANNOTATE = [
         'ctr',
         'cpc',
@@ -111,9 +113,18 @@ class MainMetrics():
     ]
 
     def get_db_table(cls, **kwargs):
+        """
+        Auxiliary function to retrieve the database table from MySQL DB
+        """
         return dict(cls.METRICS_DB)[kwargs['metric']]
 
     def calc_annotate(metric, human_metric, *args):
+        """
+        Returns the value of a calculated metric.
+        It first links the metric to their respective mathematic formula,
+            retrieving all the arguments required to calculate it defined
+            in previous defined dictionaries "METRICS_*"
+        """
         if args[1] == 0:
             return {human_metric: args[1]}
         try:
@@ -125,7 +136,7 @@ class MainMetrics():
                 'roas': {human_metric: (args[1] - args[0])/args[0] },
                 'cac': {human_metric: args[0]/args[1]},
                 'balance': {human_metric: 0 if args[0]-args[1] < 0 else args[0]-args[1]},
-                'invested': {human_metric: sum(args)}
+                #'invested': {human_metric: sum(args)}
             }.get(metric)
         except Exception as e:
             raise ValidationError({'error':e, 'detail':f'Métrica {human_metric} com divisor zero 0, não pode ser calculada.'})
@@ -139,22 +150,30 @@ class MainMetrics():
             'roas': ['spend','revenue'],
             'cac': ['spend','deals'],
             'balance': ['budget','spend'],
-            #TODO
-            # retificar invested
-            'invested': ['spend','cpc','cpv','cac','cpl'],
+            #TODO retify invested
+            #'invested': ['spend','cpc','cpv','cac','cpl'],
             'email': ['sent', 'delivered', 'opened', 'tx_opened', 'tx_clicks']
         }.get(metric)
 
     @classmethod
     def calc_metric(cls, metric, queries, clorus_id, product_id=None, campaigns=None, cnx=None):
-        # breakpoint()
+        """
+        Returns the metric value passed as the function argument "metric"
+            metric: the metric to be calculated
+            queries: available queries registered in the active company by the Django Admin User
+            clorus_id: clorus id defined by business available in MySQL DB
+            product_id: product id, or id_crm
+            campaigns: campagin id passed by the view function calling
+            cnx: connection to MySQL database
+        """
+        # if var 'metrics_summary' not available in Python running instance allocated variables stack
         if not 'metrics_summary' in vars():
             metrics_summary = {}
         if metric in cls.METRICS_DB_ANNOTATE:
             metrics = cls.calc_catering(metric)
         elif metric in cls.METRICS_MARKETEER:
             metrics_summary = {dict(cls.METRICS)[metric]: campaigns.aggregate(models.Sum('budget'))['budget__sum']}
-            queries = [] # garante que não vai executar outro trecho
+            queries = [] # ensures that it won't run another piece of code
         elif metric not in [*cls.METRICS_API_KEY, *cls.METRICS_RD, 'all']:
             raise NotFound(
                 _(f'{metric} métrica não existe, ou não foi mapeada.')
@@ -336,7 +355,14 @@ class MainMetrics():
 
 class CampaignManager(models.Manager):
     def get_recent_date(self, *args):
-        # breakpoint()
+        """
+        Returns the campaign current state [ativa, inativa, pausada]
+            It searches the MySQL database and computes in a lazy way the campaign status.
+            temp_date: current date available in MySQL registry record
+            Inativa:  temp_date <= current_date - interval(days=30)
+            Pausada: temp_date < current_date - interval(days=15)
+            Ativa: ELSE
+        """
         try:
             cnx=mysql.connector.connect(
                 user=config('MYSQL_DB_USER'),
@@ -346,10 +372,7 @@ class CampaignManager(models.Manager):
             stmt = "SELECT MAX(date) as date FROM {} WHERE id_clorus like '{}' HAVING MAX(date)".format(
                 '_'.join([args[0].company_source, args[0].datasource]),
                 args[1])
-        
-        #TODO company datasource fields [rule]
-        # 1- id_clorus
-        # 2- 
+
             with cnx.cursor(buffered=True) as cursor:  
                 cursor.execute(stmt)
                 row = cursor.fetchone()
@@ -370,17 +393,12 @@ class CampaignManager(models.Manager):
         finally:
             cnx.close()
 
-    # def get_calc_metric(self, metric):
-    #     # métricas calculadas
-    #     return {
-    #         #CPC - Custo por Clique: f"select sum(cost)/NULLIF(SUM(clicks), 1) as CPC from test.sebraeal_facebookads;"
-    #         'Leads': "SELECT SUM({}) as Leads FROM {}",
-    #         'Revenue':f"select sum(cost)/NULLIF(SUM(clicks), 1) as CPC from test.sebraeal_facebookads;",
-    #         'ROAS':f"select sum(cost)/NULLIF(SUM(clicks), 1) as CPC from test.sebraeal_facebookads;",
-    #         'CAC':f"select sum(cost)/NULLIF(SUM(clicks), 1) as CPC from test.sebraeal_facebookads;"
-    #     }.get(metric)
         
     def get_metrics_campaign(self, **kwargs):
+        """
+        Business logic
+        Returns the campaign Metrics defined by the business
+        """
         metrics_summary = {
             'Leads': 0,
             'Revenue': 0,
@@ -388,8 +406,10 @@ class CampaignManager(models.Manager):
             'CAC': 0
         }
 
-        metrics_summary['Saldo'] = list(MainMetrics.calc_metric('balance', kwargs['queries'], kwargs['id_clorus'], campaigns=kwargs['campaign']).values())[0]
-        # breakpoint()
+        # Calculate the metric "balance"
+        metrics_summary['Saldo'] = list(
+            MainMetrics.calc_metric(
+                'balance', kwargs['queries'], kwargs['id_clorus'], campaigns=kwargs['campaign']).values())[0]
 
         for q in kwargs['queries']:
             try:
@@ -418,8 +438,6 @@ class CampaignManager(models.Manager):
                             cursor.execute(stmt)
                             row = cursor.fetchone()
 
-                            # breakpoint()
- 
                             metrics_summary['Leads'] = metrics_summary['Leads']+row['Leads']
                     # else:
                         # metrics_summary.update(row)
@@ -434,13 +452,13 @@ class CampaignManager(models.Manager):
                     'cause': _(f'Tabela {".".join([q.db_name, "_".join([q.company_source, q.datasource])])} no MySQL não possui a coluna especificada.')}
                 )
         # breakpoint()
-        # calc spend
+        # Calculate the metric "spend"
         ptr = list(kwargs['products'].values_list('custom_query')[0])
         
         # breakpoint()
         aa=CustomQuery.objects.filter(pk__in=ptr)
 
-        # calc Revenue
+        # Calculate the metric "Revenue"
         deals = 0
         for index, q in enumerate(aa):
             if ('crm' in q.db_name) and (q.query_type=='2'):
@@ -466,21 +484,13 @@ class CampaignManager(models.Manager):
                         cursor.execute(stmt)
                         rows = cursor.fetchall()
                         cursor.close()
-                    # breakpoint()
                     sum_prices = 0
                     for row in rows:
                         index = json.loads(row['products_id']).index(int(kwargs['products'][index].id_crm))
                     # tmp_products = json.loads(row['products_id'])
                         sum_prices = sum_prices + json.loads(row['products_price'])[index]
-
-
-                    # stmt = "SELECT NULLIF(0,SUM(price)) as {} FROM {} WHERE products_id like '{}'".format(
-                    #     'Revenue',
-                    #     '_'.join([q.company_source, 'deals']),
-                    #     kwargs['products'][index].id_crm
-                    # )
                     
-                    # TODO
+                    # TODO Campaign closing date [TALK with Business]
                     # close_date(crm) < expiration_date(campaign)
                     # stmt_deals = "SELECT COUNT(id) as DEALS_COUNT FROM {} WHERE products_id like '{}'".format(
                     #     '_'.join([q.company_source, 'deals']),
@@ -491,20 +501,12 @@ class CampaignManager(models.Manager):
                     #     row = cursor.fetchone()
                     # metrics_summary['Revenue'] = decimal.Decimal(metrics_summary['Revenue'])+row['Revenue']
                     metrics_summary['Revenue'] = metrics_summary['Revenue']+sum_prices
-                        # cursor.close()
-                    # with cnx1.cursor(buffered=True, dictionary=True) as cursor:
-                    #     cursor.execute(stmt_deals)
-                    #     row = cursor.fetchone()
-                    # deals = deals+row['DEALS_COUNT']
                     deals = deals+len(rows)
-                        # cursor.close()
                     rows = None
-                # cnx1.close()
-        # breakpoint()
-        spend = list(MainMetrics.calc_metric('spend', kwargs['queries'], kwargs['id_clorus']).values())[0]
-        # breakpoint()
-        # calc ROAS
 
+        spend = list(MainMetrics.calc_metric('spend', kwargs['queries'], kwargs['id_clorus']).values())[0]
+
+        # Calculate the metric "ROAS"
         if spend == 0:
             metrics_summary['ROAS'] = 0
         else:
@@ -526,7 +528,7 @@ class CampaignManager(models.Manager):
         # tempcq = CustomQuery.objects.get(pk=retorno[0].custom_query_id)
         tempcq = retorno[0].custom_query
         
-        # pega todos custom_query e busca as métricas em todos para somar
+        # gets all custom_query and searches for all the metrics needed and sum
         # queries = retorno[0].custom_query.company.company_rel.filter(query_type='1') # campanhas
         # queries = retorno[0].custom_query.company.company_rel.all()
         queries = [x.custom_query for x in retorno]
@@ -542,7 +544,7 @@ class CampaignManager(models.Manager):
     
 class CampaignMetaDetail(CommonProduct):
     """ 
-    custom_query de produto, para rastreamento da origem desse item
+    custom_query from product, this is the source item tracking 
     """
     custom_query = models.ForeignKey(CustomQuery, on_delete=models.CASCADE, verbose_name="Query de origem do item em raw_data")
     class Meta:
@@ -556,7 +558,7 @@ class Campaign(models.Model):
         ('4','Geração de lead'),
         ('5','Vendas'),
     ]
-    #TODO
+
     # Funil select metric to show by id
     # [51, 1, 52,2]
     funil_ids = models.CharField(max_length=255, default='')
@@ -581,16 +583,6 @@ class Campaign(models.Model):
     class Meta:
         ordering = ['id']
 
-
-# class CriativoManager(models.Manager):
-#     pass
-        
-
-    # def get_queryset(self, *args, **kwargs):
-    #     breakpoint()
-    #     return super().get_queryset(*args, **kwargs).annotate(
-            
-    #     )
 
 class Criativos(models.Model):
     GOAL_SELECT = [
@@ -632,7 +624,7 @@ class Criativos(models.Model):
         
     @property
     def get_mm(self):
-        # breakpoint()
+        # Calculate a metric to return as a property in serializers.py
         campaign = Campaign.objects.filter(pk=self.campaign.pk)
         metrics=['range','ctr','clicks','cpc','cpl','leads','invested']
         metrics_summary = {dict(MainMetrics.METRICS)[x]:None for x in metrics}
@@ -682,10 +674,10 @@ def save_criativos(instance):
         host=config('MYSQL_DB_HOST'),
         database=query.db_name)
 
-    # remove espaço em branco de todos os itens separados por vírgula
+    # removes empty spaces in all itens separated by comma
     data_columns = [t.strip() for t in tuple(query.data_columns.split(',')) if t]
 
-    # TODO colocar os criativos de todas as tabelas
+    # TODO put all tables criativos
     stmt = "SELECT * FROM {} WHERE {} LIKE '%{}%' GROUP BY `{}`".format(
         '_'.join([query.company_source, query.datasource]),
         data_columns[0],

@@ -68,9 +68,6 @@ class CompanyAPIView(generics.GenericAPIView,
     #                     description='Description', type=openapi.TYPE_STRING)
     # @swagger_auto_schema(manual_parameters=[token_param_config])
     def get(self, request, *args, **kwargs):
-        # tokens = request.GET.get('tokens')
-        # companies = Company.objects.all()
-        # serializer = CompanySerializer(companies, many=True)
         return self.list(request, *args, **kwargs)
 
 class CompanyActiveInternView(generics.GenericAPIView,

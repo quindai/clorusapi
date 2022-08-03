@@ -53,6 +53,7 @@ class LoginAPISerializer(serializers.Serializer):
         return APIUser.objects.get(user__email=obj['email']).user_type
 
     def validate(self, value):
+        # Verifies if the credentials exists
         email=value.get('email','')
         password=value.get('password','')
         user=auth.authenticate(email=email, password=password)

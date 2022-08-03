@@ -55,6 +55,8 @@ class CustomMetrics(models.Model):
         ('9',['spend', 'Cost']),
         ('10',['conversions']),
     ]
+    # Funnel steps 
+    # Definition of 
     DETAIL_STEP = [tuple([str(x),x]) for x in range(1,7)]
 
     step = models.CharField(max_length=2, choices=DETAIL_STEP, default='1', verbose_name="Etapa")
@@ -71,9 +73,14 @@ class CustomMetrics(models.Model):
         return dict(self.DETAIL_METRICS_DB)[self.id_name]
     
     def __str__(self):
+        # human readabale name
         return '{}'.format(dict(self.DETAIL_METRICS)[self.id_name])
 
 class CustomQuery(models.Model):
+    """
+    TODO explain
+    Separates queries by type using business logic
+    """
     # tipo de query: campanha | crm | deals
     
     _CAMPANHA = '1'
@@ -144,8 +151,8 @@ class CustomQuery(models.Model):
                     if not result :
                         raise ValidationError("Verifique Company source e Datasource. Erro ao adicionar a busca, tabela não existe.")
                     
-                    # valida a query pelo tipo
-                    # buscar as colunas aqui
+                    # validate a query by type
+                    # search database columns here
                     stmt = {
                         self._CAMPANHA: "SHOW COLUMNS FROM {} WHERE Field IN {}".format(ret, ('campaign_id', 'Campaign ID')),
                         self._CRM: "SHOW COLUMNS FROM {} WHERE Field IN {}".format(ret, ('active', 'sku')),
@@ -157,7 +164,6 @@ class CustomQuery(models.Model):
                     cursor.execute(stmt)
                     result = cursor.fetchall()
                     if not result:
-                    # if ['campaign_id', 'Campaign ID'] not in result.keys():
                         raise ValidationError(f"Erro ao adicionar a busca. Precisa preenchar as colunas de '{dict(self.DETAIL_QUERY_TYPE)[self.query_type]}'.")
                     cursor.close()
         except mysql.connector.errors.ProgrammingError as error:
@@ -180,6 +186,7 @@ class CustomQuery(models.Model):
             
             # if len(self.data_columns)>0:
             if self.data_columns:
+                # data_columns: transforms database string columns into array of column names
                 data_columns = [t.strip() for t in tuple(self.data_columns.split(',')) if t]
                 if group_by:
                     stmt = "SELECT {} FROM {} GROUP BY {}".format( 

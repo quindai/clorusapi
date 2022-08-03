@@ -14,7 +14,6 @@ from .serializers import (
 class LoginAPIView(generics.GenericAPIView):
     serializer_class = LoginAPISerializer
     def post(self, request):
-        # breakpoint()
         try:
             serializer = self.serializer_class(data=request.data)
             serializer.is_valid(raise_exception=True)

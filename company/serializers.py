@@ -19,6 +19,9 @@ class CompanySerializer(serializers.ModelSerializer):
     cnpj = serializers.CharField(default=None, read_only=True)
     name = serializers.CharField(default=None, read_only=True)
     logo = serializers.CharField(default=None, read_only=True)
+    # Please see django documentation
+    # url: https://docs.djangoproject.com/en/4.0/ref/models/relations/
+    # url: https://www.django-rest-framework.org/api-guide/serializers/#listserializer
     funil_metrics = serializers.ListSerializer(
         child=CustomMetricsSerializer(), 
         source='custommetrics_set')
