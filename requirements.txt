@@ -1,7 +1,11 @@
 Django==4.0.2
 djangorestframework
 djangorestframework-simplejwt
+django_extensions
+django-cors-headers
 django-filter
+django-simple-history
+drf-yasg
 markdown
 mysql-connector-python
 psycopg2-binary
