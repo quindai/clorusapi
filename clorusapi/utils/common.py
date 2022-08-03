@@ -1,6 +1,13 @@
 from django.db import models
 
+"""
+This file only has abstract classes.
+"""
+
 class CommonProduct(models.Model):
+    """
+    Superclass for subclass Product
+    """
     id_crm = models.CharField(max_length=50)
     name = models.CharField(max_length=255, verbose_name="Nome do Produto")
     quantity = models.IntegerField(verbose_name="Quantidade")
@@ -13,6 +20,9 @@ class CommonProduct(models.Model):
         ordering = ['id_crm']
 
 class CommonComercial(models.Model):
+    """
+    Superclass for subclass Comercial
+    """
     _WEEKLY='1'
     _MONTHLY='2'
     _SEMESTERLY='3'

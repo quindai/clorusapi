@@ -1,4 +1,6 @@
 def lazy_property(fn):
+    # computes the value of a function only when the function
+    # is called in runtime
     attr_name = '_lazy_' + fn.__name__
 
     @property

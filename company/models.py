@@ -27,6 +27,9 @@ class Company(models.Model):
 
 
 class CustomMetrics(models.Model):
+    """
+    Business Metrics definition
+    """
     DETAIL_METRICS = [ # FUNIL
         ('1','Impressões'),
         ('2','Cliques'),
@@ -63,13 +66,15 @@ class CustomMetrics(models.Model):
     
     @property
     def get_db_table(self, **kwargs):
+        # Returns the database table in MySQL to retrieve
+        # the updated value for this metric.
         return dict(self.DETAIL_METRICS_DB)[self.id_name]
     
     def __str__(self):
         return '{}'.format(dict(self.DETAIL_METRICS)[self.id_name])
 
 class CustomQuery(models.Model):
-    # tipo de query: campanha | crm
+    # tipo de query: campanha | crm | deals
     
     _CAMPANHA = '1'
     _CRM = '2'
@@ -80,6 +85,9 @@ class CustomQuery(models.Model):
         # ('3','CRM DEALS')
     ]
     def validate_db_name(value):
+        # Django admin uses this function to validate if the database
+        # has this table, if not, returns an exception and the record
+        # is not saved.
         try:
             cnx=mysql.connector.connect(
                 user=config('MYSQL_DB_USER'),
@@ -116,6 +124,8 @@ class CustomQuery(models.Model):
         # ordering = ['datasource']
     
     def clean(self, *args, **kwargs): 
+        # Django admin calls it to validate a form for this object
+        # before save
         try:
             if self.db_name:
                 if self.company_source:
@@ -157,6 +167,8 @@ class CustomQuery(models.Model):
         super(CustomQuery, self).clean(*args, **kwargs)
 
     def query(self, group_by=False, group_column='id_clorus'):
+        # Custom function to retrieve a table in MySQL
+        # Returns: json array
         try:
             cnx=mysql.connector.connect(
                 user=config('MYSQL_DB_USER'),

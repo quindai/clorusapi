@@ -8,7 +8,10 @@ from clorusapi.utils.common import CommonProduct
 # import decimal #for decimal field
 
 class Product(CommonProduct):
-    #
+    """
+    A Product should have all this fields inherited from CommonProduct
+    """
+    history = HistoricalRecords()
     # id_crm = models.CharField(max_length=50)
     # name = models.CharField(max_length=255, verbose_name="Nome do Produto")
     # #
@@ -17,13 +20,12 @@ class Product(CommonProduct):
     # price = models.DecimalField(decimal_places=2, max_digits=8)
     # date_created = models.DateTimeField(auto_now_add=True)
     #goal = models.IntegerField(verbose_name="Meta") #
-    history = HistoricalRecords()
 
     # class Meta:
         # verbose_name = 'Produto'
         # ordering = ['id_crm']
 
-#3 pegar dados com model Company
+
 class GoalPlanner(models.Model):
     product = models.ManyToManyField(Product, default=1, verbose_name="Produto")
     history = HistoricalRecords()
@@ -33,6 +35,10 @@ class GoalPlanner(models.Model):
 
     
 class ComercialManager(models.Manager):
+    """
+    Manager for Comercial class
+    It calculates business rules for all objects related to date in a lazy way
+    """
     def get_queryset(self, *args, **kwargs):
         retorno= super().get_queryset(*args, **kwargs).annotate(
                 expiration_date = (models.Case(
@@ -94,28 +100,6 @@ class Comercial(models.Model):
 
     class Meta:
         ordering = ['id']
-
-
-# @receiver(pre_save, sender=Comercial) # update
-# def pre_save_update(sender, instance, **kwargs):
-#     if not instance._state.adding:
-#         print('Update de comercial')
-
-# class ComercialHistory(models.Model):
-#     comercial = models.ForeignKey(Comercial, on_delete=models.CASCADE)
-#     visualization_quant = models.BooleanField(verbose_name="Visualização Quantitativa")
-#     visualization_mon = models.BooleanField(verbose_name="Visualização Monetária")
-#     begin_date = models.DateField(db_index=True, verbose_name="Data de Início")
-#     periodicity = models.CharField(max_length=255, verbose_name="Seleção de Periodicidade")
-#     repeat_periodicity = models.BooleanField(verbose_name="Repetir Periodicidade")
-#     segmentation = models.CharField(max_length=2, choices=Comercial.DETAIL_SEGMENTATION,
-#                     verbose_name="Segmentação", default='1')    
-#     goal = models.ForeignKey(GoalPlanner, on_delete=models.CASCADE, verbose_name="Meta")
-#     expiration_date = models.DateField()
-#     status = models.BooleanField()
-#     user = models.CharField(max_length=255)
-#     modified_date = models.DateTimeField(auto_now_add=True)
-
 
 @receiver(post_save, sender=Comercial)
 def pre_save_handler(sender, **kwargs):
