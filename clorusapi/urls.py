@@ -31,7 +31,7 @@ schema_view = get_schema_view(
    openapi.Info(
       title="Clorus API",
       default_version='v1',
-      description="API de uso interno para construção de aplicações WEB/Mobile.",
+      description="API de uso interno para construção das aplicações WEB/Mobile da Clorus Analytics LTDA.",
       terms_of_service="/",
       contact=openapi.Contact(email="randy.quindai@gmail.com"),
       license=openapi.License(name="Local License"),

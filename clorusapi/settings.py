@@ -29,9 +29,14 @@ DEBUG = config('DEBUG', cast=bool)
 
 ALLOWED_HOSTS = ['*']
 CSRF_TRUSTED_ORIGINS = ['http://*.clorusanalytics.tk','http://*.127.0.0.1','http://localhost:8000']
+CORS_ALLOWED_ORIGINS = ['http://*.clorusanalytics.tk','http://*.127.0.0.1','http://localhost:8000']
+CORS_ORIGIN_WHITELIST = (
+       'http://localhost:8000',
+)
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 
+# Set the default User Model to the custom user defined in the app accounts.models.user.py
 AUTH_USER_MODEL='accounts.User'
 
 # Application definition
@@ -196,39 +201,7 @@ DATABASES = {
         'HOST': config('MYSQL_DB_HOST'),
         'PORT': config('MYSQL_DB_PORT'),
     },
-    config('MYSQL_DB2_NAME'): {
-        'ENGINE': 'mysql.connector.django',
-        'OPTIONS': {
-            'sql_mode': 'traditional',
-        },
-        'NAME': config('MYSQL_DB2_NAME'),
-        'USER': config('MYSQL_DB_USER'),
-        'PASSWORD': config('MYSQL_DB_PASS'),
-        'HOST': config('MYSQL_DB_HOST'),
-        'PORT': config('MYSQL_DB_PORT'),
-    },   
-    # config('MYSQL_DB3_NAME'): {
-    #     'ENGINE': 'mysql.connector.django',
-    #     'OPTIONS': {
-    #         'sql_mode': 'traditional',
-    #     },
-    #     'NAME': config('MYSQL_DB3_NAME'),
-    #     'USER': config('MYSQL_DB_USER'),
-    #     'PASSWORD': config('MYSQL_DB_PASS'),
-    #     'HOST': config('MYSQL_DB_HOST'),
-    #     'PORT': config('MYSQL_DB_PORT'),
-    # },
-    config('MYSQL_DB4_NAME'): {
-        'ENGINE': 'mysql.connector.django',
-        'OPTIONS': {
-            'sql_mode': 'traditional',
-        },
-        'NAME': config('MYSQL_DB4_NAME'),
-        'USER': config('MYSQL_DB_USER'),
-        'PASSWORD': config('MYSQL_DB_PASS'),
-        'HOST': config('MYSQL_DB_HOST'),
-        'PORT': config('MYSQL_DB_PORT'),
-    },
+   
 }
 
 DATABASES.update(ACTIVATED_DATABASE)
