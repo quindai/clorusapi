@@ -70,19 +70,15 @@ class ComercialProductUpdateSerializer(serializers.ModelSerializer):
         fields = ( 'product', )
 
     def validate(self, attrs):
-        # breakpoint()
         products = attrs.pop('product',[])
         try:
             goal = GoalPlanner.objects.get(comercial=Comercial.objects.get(id=self.context.get('id','')))
-            product_ids = [p['id'] for p in products]
-            goal.products.exclude(pk__in=product_ids)
+            product_ids = [p.pop('id','') for p in products]
             pp = [Product.objects.create(**p) for p in products]
-            goal.products.add(*pp)
+            goal.product.add(*pp)
         except GoalPlanner.DoesNotExist:
             raise NotFound("Meta não encontrada!")
-        # except Product.DoesNotExist:
-        #     raise NotFound("Tem algum produto que não existe!")
-        return goal.product
+        return goal
 
     # def update(self, request, *args, **kwargs):
     #     breakpoint()
