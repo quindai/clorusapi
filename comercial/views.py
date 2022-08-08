@@ -93,7 +93,6 @@ class ComercialProductUpdateView(generics.GenericAPIView):
     def put(self, request, *args, **kwargs):
         serializer = ComercialProductUpdateSerializer( data=request.data, context=kwargs)
         serializer.is_valid(raise_exception=True)
-        #    serializer.save()
         return Response(serializer.data)
 
 class ComercialDetailsView(APIView, LimitOffsetPagination):
