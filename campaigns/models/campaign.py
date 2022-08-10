@@ -3,11 +3,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.utils.translation import gettext_lazy as _
 
 from django.db import models
-from django.db.models.signals import post_save
-from django.dispatch import receiver
-from django.utils import timezone
 
-from itertools import islice
 from decouple import config
 from mysql.connector import errorcode
 from rest_framework.exceptions import NotFound
@@ -19,7 +15,6 @@ import json
 
 from accounts.models.apiuser import APIUser
 from clorusapi.utils.common import CommonProduct
-from clorusapi.utils.properties import lazy_property
 from company.models import Company, CustomQuery
 from .mainmetrics import MainMetrics
 

@@ -30,19 +30,7 @@ class CampaignView(APIView, LimitOffsetPagination):
         serializer = CampaignSerializer(campaigns, many=True)
 
         return Response(serializer.data)
-        # get_return = []
-        # get_return.extend([
-        #     {k: campaign.__dict__.get(k, None) for k in ('id', 'clorus_id', 'name', 'image', 'goal', 'goal_description', 'goal_budget', 'budget', 'status', 'metrics_summary')}
-        #     for campaign in campaigns 
-        # ])
-        
-        # try:
-        #     response = self.paginate_queryset(get_return, request, view=self)
-        # except Exception as e:
-        #     return Response({'error':str(e), 'detail':'Verifique com o admin.'}, 
-        #             status=status.HTTP_404_NOT_FOUND)
-        # else:
-        #     return self.get_paginated_response(response)
+
 
 class CampaignPostView(generics.GenericAPIView,
                         mixins.CreateModelMixin):

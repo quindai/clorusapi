@@ -1,27 +1,17 @@
-import datetime, json
-from decouple import config
-from itertools import islice
 from django.db import models
 from django.dispatch import receiver
 from django.db.models.signals import post_save
 from django.utils import timezone
-from django.core.serializers.json import DjangoJSONEncoder
 
-from django.core.exceptions import ValidationError
-from django.utils.translation import gettext_lazy as _
+from decouple import config
+from itertools import islice
+from operator import itemgetter
 
-from rest_framework.exceptions import NotFound
-
-from mysql.connector import errorcode
 import mysql.connector
-import decimal #for decimal field
-
-from company.models import Company, CustomQuery
-from accounts.models.apiuser import APIUser
-from clorusapi.utils.common import CommonProduct
-from clorusapi.utils.properties import lazy_property
+import json
 
 from .campaign import Campaign
+from .mainmetrics import MainMetrics
 
     # def get_queryset(self, *args, **kwargs):
     #     breakpoint()
@@ -110,7 +100,29 @@ class Criativos(models.Model):
     class Meta:
         ordering = ['id']
 
+def first(iterable, func=lambda L: L is not None, **kwargs):
+    """
+    Returns the first not None element in the list
+    """
+    try:
+        return next(filter(None, iterable))
+    except StopIteration:
+        return ''
+
 def save_criativos(instance):
+    """
+    Extract all 'Criativo' ads from Campaigns.
+    The data is searched from MySQL Database tables, and the logic is as follows:
+        [company_name]_facebookads
+        [company_name]_googleads
+        [company_name]_programatica
+        [company_name]_social
+    When saving a Campaign the field 'data_columns' must have the columns for Criativo columns.
+        The itemns are separated by comma, and the arguments are as follows:
+        index   |   Database Column Name
+        0       |   Column to search for the 'id_clorus'
+        1       |   Column to group the data in the 'group by' clause
+    """
     clorus_id = instance.clorus_id
     query = instance.custom_query
     cnx=mysql.connector.connect(
@@ -119,11 +131,24 @@ def save_criativos(instance):
         host=config('MYSQL_DB_HOST'),
         database=query.db_name)
 
-    # remove espaço em branco de todos os itens separados por vírgula
+    # removes blank space from all itemns separated by comma
     data_columns = [t.strip() for t in tuple(query.data_columns.split(',')) if t]
 
-    # TODO colocar os criativos de todas as tabelas
-    stmt = "SELECT * FROM {} WHERE {} LIKE '%{}%' GROUP BY `{}`".format(
+    # all rows returned from all social media ads table available in MySQL Database
+    all_rows = []
+    
+    # all social media has all but the one that is already in Django Database as a datasource
+    aux_all_social_media = ['facebookads', 'googleads', 'programatica', 'social']
+    all_social_media = [x for x in aux_all_social_media if x != query.datasource]
+    all_social_media_cols = {
+        'facebookads':'campaign_name',
+        'googleads':'Campaign',
+        'programatica':'Campaign',
+        'social':'Campaign'
+    }
+    all_social_media_cols.pop(query.datasource)
+
+    stmt = "SELECT * FROM {} WHERE {} LIKE '%{}%' GROUP BY `{}` desc".format(
         '_'.join([query.company_source, query.datasource]),
         data_columns[0],
         clorus_id,
@@ -134,18 +159,36 @@ def save_criativos(instance):
         cursor.execute(stmt)
         rows = cursor.fetchall()
         cursor.close()
+
+    all_rows.extend(rows)
+
+    # get all criativos from all databases
+    for datasource in all_social_media:
+        stmt = "SELECT * FROM {} WHERE {} LIKE '%{}%' GROUP BY `{}` desc".format(
+            '_'.join([query.company_source, datasource]),
+            all_social_media_cols[datasource],
+            clorus_id,
+            data_columns[1],
+        )
+
+        with cnx.cursor(buffered=True, dictionary=True) as cursor:  
+            cursor.execute(stmt)
+            rows = cursor.fetchall()
+            cursor.close()
+        all_rows.extend(rows)
     cnx.close()
 
     criativos = (Criativos(
-        ad_group_id= row.get('Ad group ID',''),
+        # maps the same column with different name in different table
+        ad_group_id= first([row.get(key,None) for key in ['Ad group ID','adset_id']]),
         ad_id= row[data_columns[1].replace('`','')],
-        description= row.get('Description',''),
+        description= first([row.get(key,None) for key in ['Description','Creative_set']]),
         tipo_midia= row['tipo_midia'],
         channel= row['channel'],
         format= row['format'],
         objective= row.get('objective',''), 
         campaign= instance
-    ) for row in rows)
+    ) for row in all_rows)
 
     batch_size = 100
     while True:
