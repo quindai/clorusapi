@@ -92,6 +92,7 @@ TEMPLATES = [
 ]
 
 SWAGGER_SETTINGS = {
+    'BASE_PATH': config('BASE_URL'),
     'SECURITY_DEFINITIONS': {
         'Bearer': {
             'type':'apiKey',
