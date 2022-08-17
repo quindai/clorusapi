@@ -31,7 +31,7 @@ ALLOWED_HOSTS = ['*']
 CSRF_TRUSTED_ORIGINS = ['http://*.clorusanalytics.ga','http://*.127.0.0.1','http://localhost:8000']
 CORS_ALLOWED_ORIGINS = ['http://*.clorusanalytics.ga','http://*.127.0.0.1','http://localhost:8000']
 CORS_ORIGIN_WHITELIST = (
-       'http://localhost:8000',
+       'http://localhost:8000', http://*.clorusanalytics.ga, http://clorusanalytics.ga,
 )
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
