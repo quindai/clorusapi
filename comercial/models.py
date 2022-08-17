@@ -93,7 +93,7 @@ class Comercial(models.Model):
     segmentation = models.CharField(max_length=2, choices=DETAIL_SEGMENTATION,
                     verbose_name="Segmentação", default='1')    
     goal = models.ForeignKey(GoalPlanner, on_delete=models.CASCADE, verbose_name="Meta")
-    company = models.OneToOneField(Company, on_delete=models.CASCADE)
+    company = models.ForeignKey(Company, on_delete=models.CASCADE)
     history = HistoricalRecords()
 
     objects = ComercialManager()
