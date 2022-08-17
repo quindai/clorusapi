@@ -28,8 +28,8 @@ SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', cast=bool)
 
 ALLOWED_HOSTS = ['*']
-CSRF_TRUSTED_ORIGINS = ['http://*.clorusanalytics.tk','http://*.127.0.0.1','http://localhost:8000']
-CORS_ALLOWED_ORIGINS = ['http://*.clorusanalytics.tk','http://*.127.0.0.1','http://localhost:8000']
+CSRF_TRUSTED_ORIGINS = ['http://*.clorusanalytics.ga','http://*.127.0.0.1','http://localhost:8000']
+CORS_ALLOWED_ORIGINS = ['http://*.clorusanalytics.ga','http://*.127.0.0.1','http://localhost:8000']
 CORS_ORIGIN_WHITELIST = (
        'http://localhost:8000',
 )
